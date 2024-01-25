@@ -47,7 +47,12 @@ sessionInfo()
 
 This exercise (and later in this course) uses the [MIMIC-IV data v2.2](https://physionet.org/content/mimiciv/2.2/), a freely accessible critical care database developed by the MIT Lab for Computational Physiology. Follow the instructions at <https://mimic.mit.edu/docs/gettingstarted/> to (1) complete the CITI `Data or Specimens Only Research` course and (2) obtain the PhysioNet credential for using the MIMIC-IV data. Display the verification links to your completion report and completion certificate here. **You must complete Q2 before working on the remaining questions.** (Hint: The CITI training takes a few hours and the PhysioNet credentialing takes a couple days; do not leave it to the last minute.)
 
-**Answer:** I completed the CITI training. Here is the link to my [completion report](https://www.citiprogram.org/verify/?kc751f3e2-c959-4ab0-8744-89430dd87535-60370486). Here is the link to my [completion certificate](https://www.citiprogram.org/verify/?wb2be059f-01ad-4946-ad16-d3b2c3d94780-60370486).
+**Answer:** 
+
+I completed the CITI training. Here is the link to my [completion report](https://www.citiprogram.org/verify/?kc751f3e2-c959-4ab0-8744-89430dd87535-60370486). Here is the link to my [completion certificate](https://www.citiprogram.org/verify/?wb2be059f-01ad-4946-ad16-d3b2c3d94780-60370486).
+
+I also obtained the PhysioNet credential for using the MIMIC-IV data. Here is the screenshot of my PhysioNet credential.
+![PhysioNet credential](./physionet-credential.png)
 
 ## Q3. Linux Shell Commands
 
@@ -70,7 +75,38 @@ Here is how I created the symbolic link:
 ```
 2. Display the contents in the folders `hosp` and `icu` using Bash command `ls -l`. Why are these data files distributed as `.csv.gz` files instead of `.csv` (comma separated values) files? Read the page <https://mimic.mit.edu/docs/iv/> to understand what's in each folder.
 
+**Answer:** 
+
+Here is the output of `ls -l ~/mimic/hosp/`:
+```{bash}
+ls -l ~/mimic/hosp/
+```
+Here is the output of `ls -l ~/mimic/icu/`:
+```{bash}
+ls -l ~/mimic/icu/
+```
+Gzip compression reduces the size of the files, making them smaller and more efficient for storage and transmission. The gzip compression is lossless, meaning that the decompressed data is identical to the original data. Also, users can download and access compressed files more quickly than their uncompressed counterparts.
+
+Hosp: The Hosp module provides all data acquired from the hospital wide electronic health record. Information covered includes patient and admission information, laboratory measurements, microbiology, medication administration, and billed diagnoses.
+
+ICU: The ICU module contains information collected from the clinical information system used within the ICU. Documented data includes intravenous administrations, ventilator settings, and other charted items.
+
+ED: The ED module contains data for emergency department patients collected while they are in the ED. Information includes reason for admission, triage assessment, vital signs, and medicine reconciliaton. The subject_id and hadm_id identifiers allow MIMIC-IV-ED to be linked to other MIMIC-IV modules.
+
+CXR: The CXR module provides lookup tables linking patient identifiers with MIMIC-CXR study_id and dicom_id, allowing analysis of patient chest x-rays to be linked with the clinical data from other MIMIC-IV modules.
+
+Note: (NOT PUBLICLY AVAILABLE): The Note module contains deidentified free-text clinical notes for hospitalized patients.
+
 3. Briefly describe what Bash commands `zcat`, `zless`, `zmore`, and `zgrep` do.
+**Answer:**
+
+`zcat`: `zcat` is used to display the contents of one or more compressed file without actually uncompressing it. It is equivalent to `gzip -cd`.
+
+`zless`: `zless` is used to view the contents of a compressed file one screen at a time. It is equivalent to `gzip -cd | less`. `less` is an improved version of `more` with additional features. It allows both forward and backward navigation through the file. You can use the arrow keys, Page Up, Page Down, and other keys for navigation. Press 'q' to exit. `less` supports searching, highlighting, and can display line numbers.
+
+`zmore`: `zmore` is used to view the contents of a compressed file one screen at a time. It is equivalent to `gzip -cd | more`. You can press the spacebar to advance to the next screen, and press the Enter key to move one line at a time.
+
+`zgrep`: `zgrep` is used to search through one or more compressed files for a string of characters that matches a specified pattern. It is equivalent to `gzip -cd | grep`.
 
 4. (Looping in Bash) What's the output of the following bash script?
 ```{bash}
