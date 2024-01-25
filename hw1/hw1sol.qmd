@@ -135,6 +135,74 @@ Explain the output. Explain the meaning of `"$1"`, `"$2"`, and `"$3"` in this sh
 
 Try following commands in Bash and interpret the results: `cal`, `cal 2024`, `cal 9 1752` (anything unusual?), `date`, `hostname`, `arch`, `uname -a`, `uptime`, `who am i`, `who`, `w`, `id`, `last | head`, `echo {con,pre}{sent,fer}{s,ed}`, `time sleep 5`, `history | tail`.
 
+**Answer:** Here is the output of the commands:
+```{bash}
+cal
+```
+`cal`: display the calendar of the current month.
+```{bash}
+cal 2024
+```
+`cal 2024`: display the calendar of the year 2024.
+```{bash}
+cal 9 1752
+```
+`cal 9 1752`: display the calendar of the month September in the year 1752. The calendar of September 1752 is unusual because the Gregorian calendar was adopted in the British Empire in September 1752. The calendar was changed from the Julian calendar to the Gregorian calendar. The Julian calendar was 11 days behind the Gregorian calendar. So the 11 days from September 3 to September 13 were skipped.
+
+```{bash}
+date
+```
+`date`: display the current date and time.
+```{bash}
+hostname
+```
+`hostname`: display the name of the host.
+```{bash}
+arch
+```
+`arch`: display the machine hardware name.
+```{bash}
+uname -a
+```
+`uname -a`: display the system information.
+```{bash}
+uptime
+```
+`uptime`: display the current time, how long the system has been running, how many users are currently logged on, and the system load averages for the past 1, 5, and 15 minutes.
+```{bash}
+who am i
+```
+`who am i`: display the current user.
+```{bash}
+who
+```
+`who`: display the users who are currently logged in.
+```{bash}
+# w 
+```
+`w`: display the users who are currently logged in and what they are doing.
+```{bash}
+id
+```
+`id`: display the user and group information for the current user.
+```{bash}
+last | head
+```
+`last | head`: display the last logged in users.
+```{bash}
+echo {con,pre}{sent,fer}{s,ed}
+```
+`echo {con,pre}{sent,fer}{s,ed}`: display the words "consents", "confer", "presents", "present", "consented", "conferred", "presented", "presented".
+```{bash}
+time sleep 5
+```
+`time sleep 5`: display the time it takes to run the command `sleep 5`.
+```{bash}
+history | tail
+```
+`history | tail`: display the last 10 commands in the history.
+
+
 ## Q6. Book
 
 1. Git clone the repository <https://github.com/christophergandrud/Rep-Res-Book> for the book _Reproducible Research with R and RStudio_ to your local machine. 
