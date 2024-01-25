@@ -147,5 +147,5 @@ For grading purpose, include a screenshot of Section 4.1.5 of the book here.
 
 **Answer:** 
 
-Here is the screenshot of Section 4.1.5 of the git_book.
+I was also able to build `git_book` and `epub_book` but not `pdf_book`. Here is the screenshot of Section 4.1.5 of the git_book.
 ![Section 4.1.5 of the git_book](./sec-4-1-5-screenshot-git.png) Here is the screenshot of Section 4.1.5 of the epub_book. ![Section 4.1.5 of the epub_book](./sec-4-1-5-screenshot-epub.png)
