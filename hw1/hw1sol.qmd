@@ -96,6 +96,9 @@ Display the number of lines in each data file using a similar loop. (Hint: combi
 wget -nc http://www.gutenberg.org/cache/epub/42671/pg42671.txt
 ```
 Explain what `wget -nc` does. Do **not** put this text file `pg42671.txt` in Git. Complete the following loop to tabulate the number of times each of the four characters is mentioned using Linux commands.
+
+**Answer:** `wget -nc` downloads the file from the URL if the file does not exist in the current directory. 
+
 ```{bash}
 #| eval: false
 wget -nc http://www.gutenberg.org/cache/epub/42671/pg42671.txt
@@ -103,8 +106,22 @@ for char in Elizabeth Jane Lydia Darcy
 do
   echo $char:
   # some bash commands here
+  grep -o -i $char pg42671.txt | wc -l
 done
 ```
+Elizabeth:
+
+     634
+Jane:
+
+     293
+Lydia:
+
+     171
+Darcy:
+
+     418
+It shows that Elizabeth was the most mentioned. She was mentioned 634 times in the book. Darcy was mentioned 418 times in the book. Jane was mentioned 293 times in the book. Lydia was mentioned 171 times in the book. The -i option in command `grep` is used for case-insensitive searching. The -o option in command `grep` is used for printing each match on a new line . The -l option in command `wc` is used for printing the number of lines in a file.
 
 2. What's the difference between the following two commands?
 ```{bash}
