@@ -60,6 +60,14 @@ Refer to the documentation <https://physionet.org/content/mimiciv/2.2/> for deta
 
   Use Bash commands to answer following questions.
 
+**Answer:** I created a symbolic link `mimic` to my MIMIC data folder. Here is the output of `ls -l ~/mimic/`:
+```{bash}
+ls -l ~/mimic/
+```
+Here is how I created the symbolic link:
+```{bash}
+# ln -s /Users/zhangjiyin/Desktop/ucla/23-24/winter/203B/mimic-iv-2.2 ./mimic
+```
 2. Display the contents in the folders `hosp` and `icu` using Bash command `ls -l`. Why are these data files distributed as `.csv.gz` files instead of `.csv` (comma separated values) files? Read the page <https://mimic.mit.edu/docs/iv/> to understand what's in each folder.
 
 3. Briefly describe what Bash commands `zcat`, `zless`, `zmore`, and `zgrep` do.
@@ -136,3 +144,8 @@ Try following commands in Bash and interpret the results: `cal`, `cal 2024`, `ca
 The point of this exercise is (1) to get the book for free and (2) to see an example how a complicated project such as a book can be organized in a reproducible way.
 
 For grading purpose, include a screenshot of Section 4.1.5 of the book here.
+
+**Answer:** 
+
+Here is the screenshot of Section 4.1.5 of the git_book.
+![Section 4.1.5 of the git_book](./sec-4-1-5-screenshot-git.png) Here is the screenshot of Section 4.1.5 of the epub_book. ![Section 4.1.5 of the epub_book](./sec-4-1-5-screenshot-epub.png)
