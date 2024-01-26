@@ -41,7 +41,7 @@ sessionInfo()
 
 5. After this course, you can make this repository public and use it to demonstrate your skill sets on job market.
 
-**Answer:** Display the URL of my GitHub repository here. <https://github.com/Zhangjiyin2000/biostat-203b-2024-winter>
+**Answer:** I display the URL of my GitHub repository [here](https://github.com/Zhangjiyin2000/biostat-203b-2024-winter).
 
 ## Q2. Data ethics training
 
@@ -49,7 +49,7 @@ This exercise (and later in this course) uses the [MIMIC-IV data v2.2](https://p
 
 **Answer:** 
 
-I completed the CITI training. Here is the link to my [completion report](https://www.citiprogram.org/verify/?kc751f3e2-c959-4ab0-8744-89430dd87535-60370486). Here is the link to my [completion certificate](https://www.citiprogram.org/verify/?wb2be059f-01ad-4946-ad16-d3b2c3d94780-60370486).
+I completed the CITI training. Here is the link to my [completion report](https://www.citiprogram.org/verify/?kc751f3e2-c959-4ab0-8744-89430dd87535-60370486) and here is the link to my [completion certificate](https://www.citiprogram.org/verify/?wb2be059f-01ad-4946-ad16-d3b2c3d94780-60370486).
 
 I also obtained the PhysioNet credential for using the MIMIC-IV data. Here is the screenshot of my PhysioNet credential.
 ![PhysioNet credential](./physionet-credential.png)
@@ -67,11 +67,13 @@ Refer to the documentation <https://physionet.org/content/mimiciv/2.2/> for deta
 
 **Answer:** I created a symbolic link `mimic` to my MIMIC data folder. Here is the output of `ls -l ~/mimic/`:
 ```{bash}
+#| eval: true
 ls -l ~/mimic/
 ```
 Here is how I created the symbolic link:
 ```{bash}
-# ln -s /Users/zhangjiyin/Desktop/ucla/23-24/winter/203B/mimic-iv-2.2 ./mimic
+#| eval: false
+ln -s /Users/zhangjiyin/Desktop/ucla/23-24/winter/203B/mimic-iv-2.2 ./mimic
 ```
 
 2. Display the contents in the folders `hosp` and `icu` using Bash command `ls -l`. Why are these data files distributed as `.csv.gz` files instead of `.csv` (comma separated values) files? Read the page <https://mimic.mit.edu/docs/iv/> to understand what's in each folder.
@@ -88,7 +90,7 @@ Here is the output of `ls -l ~/mimic/icu/`:
 #| eval: true
 ls -l ~/mimic/icu/
 ```
-**Reason:** Gzip compression reduces the size of the files, making them smaller and more efficient for storage and transmission. The gzip compression is lossless, meaning that the decompressed data is identical to the original data. Also, users can download and access compressed files more quickly than their uncompressed counterparts.
+**Reason:** Gzip compression reduces the size of the files, making them smaller and more efficient for storage and transmission. The gzip compression is lossless, meaning that the decompressed data is identical to the original data.
 
 **Hosp:** The Hosp module provides all data acquired from the hospital wide electronic health record. Information covered includes patient and admission information, laboratory measurements, microbiology, medication administration, and billed diagnoses.
 
@@ -114,7 +116,9 @@ ls -l ~/mimic/icu/
 
 4. (Looping in Bash) What's the output of the following bash script?
 
-**Answer:** Below the bash script is the output.
+**Answer:** 
+
+Below the bash script is the output. It matches files starting with 'a', 'l', or 'pa' and ending with '.gz'.
 
 ```{bash}
 #| eval: true
@@ -125,7 +129,7 @@ done
 ```
 Display the number of lines in each data file using a similar loop. (Hint: combine linux commands `zcat <` and `wc -l`.)
 
-**Answer:** Here is the bash script and the output of the bash script.
+Here is the bash script and the output of the bash script.
 
 ```{bash}
 #| eval: true
@@ -142,40 +146,35 @@ done
 
 ```{bash}
 #| eval: true
-# Display the first few lines of admissions.csv.gz
 echo "First few lines of admissions.csv.gz:"
 zcat < ~/mimic/hosp/admissions.csv.gz | head
 ```
 
 ```{bash}
 #| eval: true
-# Count the number of rows in admissions.csv.gz
 echo "Number of rows in admissions.csv.gz:"
 zcat < ~/mimic/hosp/admissions.csv.gz | wc -l
 ```
 
 ```{bash}
 #| eval: true
-# Count the number of unique patients (identified by subject_id) in admissions.csv.gz
 echo "Number of unique patients in admissions.csv.gz:"
 zcat < ~/mimic/hosp/admissions.csv.gz | tail -n +2 | awk -F',' '{print $1}' | sort | uniq | wc -l
 
 ```
 ```{bash} 
 #| eval: true 
-# Display the first few lines of patients.csv.gz
-echo "Number of patients in patients.csv.gz:"
+echo "First few lines of patients.csv.gz:"
 zcat < ~/mimic/hosp/patients.csv.gz | head
 ```
 
 ```{bash}
 #| eval: true
-# Count the number of patients in patients.csv.gz
 echo "Number of patients in patients.csv.gz:"
 zcat < ~/mimic/hosp/patients.csv.gz | tail -n +2 | awk -F',' '{print $1}' | sort | uniq | wc -l
 ```
 
-Therefore, the number of unique patients (identified by `subject_id`) in this data file does not match the number of patients listed in the `patients.csv.gz` file.
+Therefore, the number of unique patients (identified by `subject_id`) in this data file **does not** match the number of patients listed in the `patients.csv.gz` file.
 
 6. What are the possible values taken by each of the variable `admission_type`, `admission_location`, `insurance`, and `ethnicity`? Also report the count for each unique value of these variables. (Hint: combine Linux commands `zcat`, `head`/`tail`, `awk`, `uniq -c`, `wc`, and so on; skip the header line.)
 
@@ -188,8 +187,8 @@ zcat < ~/mimic/hosp/admissions.csv.gz | tail -n +2 | awk -F',' '{print $6}' | so
 ```
 ```{bash}
 #| eval: true
-echo "The count for for each unique value of admission_type:"
-zcat < ~/mimic/hosp/admissions.csv.gz | tail -n +2 | awk -F',' '{print $6}' | sort | uniq | wc -l
+echo "The count for each unique value of admission_type:"
+zcat < ~/mimic/hosp/admissions.csv.gz | tail -n +2 | awk -F',' '{print $6}' | sort | uniq -c
 ```
 ```{bash}
 #| eval: true
@@ -198,8 +197,8 @@ zcat < ~/mimic/hosp/admissions.csv.gz | tail -n +2 | awk -F',' '{print $8}' | so
 ```
 ```{bash}
 #| eval: true
-echo "The count for for each unique value of admission_location:"
-zcat < ~/mimic/hosp/admissions.csv.gz | tail -n +2 | awk -F',' '{print $8}' | sort | uniq | wc -l
+echo "The count for each unique value of admission_location:"
+zcat < ~/mimic/hosp/admissions.csv.gz | tail -n +2 | awk -F',' '{print $8}' | sort | uniq -c
 ```
 ```{bash}
 #| eval: true
@@ -208,8 +207,8 @@ zcat < ~/mimic/hosp/admissions.csv.gz | tail -n +2 | awk -F',' '{print $10}' | s
 ```
 ```{bash}
 #| eval: true
-echo "The count for for each unique value of insurance:"
-zcat < ~/mimic/hosp/admissions.csv.gz | tail -n +2 | awk -F',' '{print $10}' | sort | uniq | wc -l
+echo "The count for each unique value of insurance:"
+zcat < ~/mimic/hosp/admissions.csv.gz | tail -n +2 | awk -F',' '{print $10}' | sort | uniq -c
 ```
 ```{bash}
 #| eval: true
@@ -218,8 +217,8 @@ zcat < ~/mimic/hosp/admissions.csv.gz | tail -n +2 | awk -F',' '{print $13}' | s
 ```
 ```{bash}
 #| eval: true
-echo "The count for for each unique value of ethnicity (race):"
-zcat < ~/mimic/hosp/admissions.csv.gz | tail -n +2 | awk -F',' '{print $13}' | sort | uniq | wc -l
+echo "The count for each unique value of ethnicity (race):"
+zcat < ~/mimic/hosp/admissions.csv.gz | tail -n +2 | awk -F',' '{print $13}' | sort | uniq -c
 ```
 
 7. _To compress, or not to compress. That's the question._ Let's focus on the big data file `labevents.csv.gz`. Compare compressed gz file size to the uncompressed file size. Compare the run times of `zcat < ~/mimic/labevents.csv.gz | wc -l` versus `wc -l labevents.csv`. Discuss the trade off between storage and speed for big data files. (Hint: `gzip -dk < FILENAME.gz > ./FILENAME`. Remember to delete the large `labevents.csv` file after the exercise.)
@@ -229,7 +228,7 @@ zcat < ~/mimic/hosp/admissions.csv.gz | tail -n +2 | awk -F',' '{print $13}' | s
 Decompress the gzipped file.
 
 ```{bash}
-#| eval: false
+#| eval: true
 gzip -dk < ~/mimic/hosp/labevents.csv.gz > ./labevents.csv
 ```
 
@@ -241,6 +240,7 @@ echo "Size of compressed gz file:"
 du -h ~/mimic/hosp/labevents.csv.gz
 ```
 ```{bash}
+#| eval: true
 echo "Size of uncompressed gz file:"
 du -h labevents.csv
 ```
@@ -258,6 +258,13 @@ time zcat < ~/mimic/hosp/labevents.csv.gz | wc -l
 echo "Run time for wc:"
 time wc -l labevents.csv
 ```
+Delete the large labevents.csv file after the exercise.
+
+```{bash}
+#| eval: true
+rm labevents.csv
+```
+
 Discuss the trade off between storage and speed for big data files.
 
 **Storage:**
@@ -279,7 +286,7 @@ Compression trades storage space for slower access times. If storage space is li
 The choice between compression and uncompressed files depends on the specific use case, available storage, and the frequency of data access.
 For datasets that are read frequently and where storage is not a major concern, uncompressed files might be preferable for faster access times.
 
-## Q4. Who's popular in Price and Prejudice
+## Q4. Who's popular in Pride and Prejudice
 
 1. You and your friend just have finished reading *Pride and Prejudice* by Jane Austen. Among the four main characters in the book, Elizabeth, Jane, Lydia, and Darcy, your friend thinks that Darcy was the most mentioned. You, however, are certain it was Elizabeth. Obtain the full text of the novel from <http://www.gutenberg.org/cache/epub/42671/pg42671.txt> and save to your local folder. 
 ```{bash}
@@ -291,7 +298,7 @@ Explain what `wget -nc` does. Do **not** put this text file `pg42671.txt` in Git
 **Answer:** `wget -nc` downloads the file from the URL if the file does not exist in the current directory. 
 
 ```{bash}
-#| eval: false
+#| eval: true
 for char in Elizabeth Jane Lydia Darcy
 do
   echo $char:
@@ -299,35 +306,40 @@ do
   grep -o -i $char pg42671.txt | wc -l
 done
 ```
-It shows that Elizabeth was the most mentioned. She was mentioned 634 times in the book. Darcy was mentioned 418 times in the book. Jane was mentioned 293 times in the book. Lydia was mentioned 171 times in the book. The -i option in command `grep` is used for case-insensitive searching. The -o option in command `grep` is used for printing each match on a new line . The -l option in command `wc` is used for printing the number of lines in a file.
+
+It shows that Elizabeth was the most mentioned. She was mentioned 634 times in the book. Darcy was mentioned 418 times in the book. Jane was mentioned 293 times in the book. Lydia was mentioned 171 times in the book. The `-i` option in command `grep` is used for case-insensitive searching. The `-o` option in command `grep` is used for printing each match on a new line . The `-l` option in command `wc` is used for printing the number of lines in a file.
 
 2. What's the difference between the following two commands?
 ```{bash}
-#| eval: false
+#| eval: true
 echo 'hello, world' > test1.txt
+cat test1.txt
 ```
 and
 ```{bash}
-#| eval: false
+#| eval: true
 echo 'hello, world' >> test2.txt
+cat test2.txt
 ```
-**Answer:** The first command overwrites the file `test1.txt` if the file exists. The second command appends the text to the file `test2.txt` if the file exists.
+**Answer:** The first command overwrites the file `test1.txt` if the file exists. The second command appends the text to the file `test2.txt` if the file exists. To clarify, the use of > signifies file overwriting, while >> indicates appending content to the existing file.
 
 3. Using your favorite text editor (e.g., `vi`), type the following and save the file as `middle.sh`:
 ```{bash eval=FALSE}
 #!/bin/sh
 # Select lines from the middle of a file.
 # Usage: bash middle.sh filename end_line num_lines
-head -n "$2" "$1" | tail -n "$3"
+# head -n "$2" "$1" | tail -n "$3"
 ```
 Using `chmod` to make the file executable by the owner, and run
 ```{bash}
-#| eval: false
+#| eval: true
 ./middle.sh pg42671.txt 20 5
 ```
 Explain the output. Explain the meaning of `"$1"`, `"$2"`, and `"$3"` in this shell script. Why do we need the first line of the shell script?
 
-**Answer:** The output is the 5 lines from line 16 to line 20 of the file `pg42671.txt`. The `"$1"` is the first argument of the shell script, the file name, `pg42671.txt`. The `"$2"` is the second argument of the shell script, the end line. The `"$3"` is the third argument of the shell script, the number of lines. Therefore, the shell script selects the lines from the middle of the file. To elucidate, the shell script first use command `head` to select the first 20 lines from the file `pg42671.txt` and then pass this output to the command `tail`. Then, command `tail` selects the last 5 lines from the output generated by command `head`.
+**Answer:** 
+
+The output is the 5 lines from line 16 to line 20 of the file `pg42671.txt`. The `"$1"` is the first argument of the shell script, the file name, `pg42671.txt`. The `"$2"` is the second argument of the shell script, the end line. The `"$3"` is the third argument of the shell script, the number of lines. Therefore, the shell script selects the lines from the middle of the file. To elucidate, the shell script first use command `head` to select the first 20 lines from the file `pg42671.txt` and then pass this output to the command `tail`. Then, command `tail` selects the last 5 lines from the output generated by command `head`.
 
 The #! symbol is called a shebang or hashbang. It is a special character sequence that appears at the beginning of a script or an executable file in Unix-like operating systems. The shebang is followed by the path to the interpreter that should be used to execute the script. Therefore, the first line of the shell script tells the system to use the Bourne shell (/bin/sh) as the interpreter for executing the script. 
 
@@ -337,39 +349,48 @@ Try following commands in Bash and interpret the results: `cal`, `cal 2024`, `ca
 
 **Answer:** Here is the output of the commands:
 ```{bash}
+#| eval: true
 cal
 ```
 `cal`: display the calendar of the current month.
 ```{bash}
+#| eval: true
 cal 2024
 ```
 `cal 2024`: display the calendar of the year 2024.
 ```{bash}
+#| eval: true
 cal 9 1752
 ```
 `cal 9 1752`: display the calendar of the month September in the year 1752. The calendar of September 1752 is unusual because the Gregorian calendar was adopted in the British Empire in September 1752. The calendar was changed from the Julian calendar to the Gregorian calendar. The Julian calendar was 11 days behind the Gregorian calendar. So the 11 days from September 3 to September 13 were skipped.
 
 ```{bash}
+#| eval: true
 date
 ```
 `date`: display the current date and time.
 ```{bash}
+#| eval: true
 hostname
 ```
 `hostname`: display the name of the host.
 ```{bash}
+#| eval: true
 arch
 ```
 `arch`: display the machine hardware name.
 ```{bash}
+#| eval: true
 uname -a
 ```
 `uname -a`: display the system information.
 ```{bash}
+#| eval: true
 uptime
 ```
 `uptime`: display the current time, how long the system has been running, how many users are currently logged on, and the system load averages for the past 1, 5, and 15 minutes.
 ```{bash}
+#| eval: true
 who am i
 ```
 `who am i`: display the current user.
@@ -378,27 +399,33 @@ who
 ```
 `who`: display the users who are currently logged in.
 ```{bash}
+#| eval: false
 # w 
 ```
 `w`: display the users who are currently logged in and what they are doing.
 ```{bash}
+#| eval: true
 id
 ```
 `id`: display the user and group information for the current user.
 ```{bash}
+#| eval: true
 last | head
 ```
 `last | head`: display the last logged in users.
 ```{bash}
+#| eval: true
 echo {con,pre}{sent,fer}{s,ed}
 ```
 `echo {con,pre}{sent,fer}{s,ed}`: display the words "consents", "confer", "presents", "present", "consented", "conferred", "presented", "presented".
 ```{bash}
+#| eval: true
 time sleep 5
 ```
 `time sleep 5`: display the time it takes to run the command `sleep 5`.
 ```{bash}
-history | tail
+#| eval: true
+# history | tail
 ```
 `history | tail`: display the last 10 commands in the history.
 
