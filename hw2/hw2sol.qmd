@@ -271,7 +271,10 @@ labevents_filtered_data <- system.time(
   read_csv(labevents_filtered_file_path, show_col_types = FALSE)
 )
 ```
-
+```{r}
+# Display runtime and memory usage
+cat("Tidyverse Time (Explicit Types):", labevents_filtered_data[3], "seconds\n")
+```
 ### Q2.4 Ingest `labevents.csv` by Apache Arrow
 
 <p align="center">
@@ -287,13 +290,14 @@ Write a few sentences to explain what is Apache Arrow. Imagine you want to expla
 **Answer:**
 
 ```{bash}
-#| eval: false
-gzip -d ~/mimic/hosp/labevents.csv.gz > labevents.csv
+#| eval: true
+gzip -dk < ~/mimic/hosp/labevents.csv.gz > ./labevents.csv
 ```
+
 
 ```{r}
 labevents_arrow <- system.time({
-  labevents_dataset <- open_dataset("labevents.csv")
+  labevents_dataset <- arrow::open_dataset("labevents.csv", format = "csv")
   labevents_filtered_arrow <- labevents_dataset %>%
   select(subject_id, itemid, charttime, valuenum) %>%
   filter(itemid %in% c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931)) %>%
@@ -305,7 +309,9 @@ labevents_arrow <- system.time({
 cat("Number of Rows:", nrow(labevents_filtered_arrow), "\n")
 head(labevents_filtered_arrow, 10)
 ```
-
+Instead of bundling up information in a big, complex package, Arrow breaks it 
+down into smaller, organized pieces. These pieces are easy to understand and 
+can be quickly sorted, searched, and shared by different computer systems. 
 
 ### Q2.5 Compress `labevents.csv` to Parquet format and ingest/select/filter
 
@@ -321,7 +327,7 @@ Write a few sentences to explain what is the Parquet format. Imagine you want to
 
 ```{r}
 # Re-write the csv file in the binary Parquet format
-write_dataset("labevents.csv", "labevents.parquet")
+write_dataset("labevents.csv")
 ```
 
 ```{r}
