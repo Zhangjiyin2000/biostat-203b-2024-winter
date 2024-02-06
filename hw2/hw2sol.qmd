@@ -303,6 +303,7 @@ labevents_arrow <- system.time({
   filter(itemid %in% c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931)) %>%
   collect()
 })
+labevents_arrow
 ```
 
 ```{r}
@@ -314,10 +315,6 @@ down into smaller, organized pieces. These pieces are easy to understand and
 can be quickly sorted, searched, and shared by different computer systems. 
 
 ### Q2.5 Compress `labevents.csv` to Parquet format and ingest/select/filter
-
-<p align="center">
-  <img src="./parquet_logo.png" width="30%">
-</p>
 
 Re-write the csv file `labevents.csv` in the binary Parquet format (Hint: [`arrow::write_dataset`](https://arrow.apache.org/docs/r/reference/write_dataset.html).) How large is the Parquet file(s)? How long does the ingest+select+filter process of the Parquet file(s) take? Display the number of rows and the first 10 rows of the result tibble and make sure they match those in Q2.3. (Hint: use `dplyr` verbs for selecting columns and filtering rows.)
 
