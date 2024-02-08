@@ -37,6 +37,7 @@ library(pryr)
 library(R.utils)
 library(tidyverse)
 library(dplyr)
+library(duckdb)
 ```
 
 Display memory information of your computer
@@ -384,32 +385,41 @@ head(labevents_filtered_parquet, 10)
 
 ### Q2.6 DuckDB
 
-<p align="center">
-  <img src="./duckdb_logo.png" width="20%">
-</p>
+Ingest the Parquet file, convert it to a DuckDB table by [`arrow::to_duckdb`](https://arrow.apache.org/docs/r/reference/to_duckdb.html), 
+select columns, and filter rows as in Q2.5. How long does the 
+ingest+convert+select+filter process take? Display the number of rows and the 
+first 10 rows of the result tibble and make sure they match those in Q2.3. 
+(Hint: use `dplyr` verbs for selecting columns and filtering rows.)
 
-Ingest the Parquet file, convert it to a DuckDB table by [`arrow::to_duckdb`](https://arrow.apache.org/docs/r/reference/to_duckdb.html), select columns, and filter rows as in Q2.5. How long does the ingest+convert+select+filter process take? Display the number of rows and the first 10 rows of the result tibble and make sure they match those in Q2.3. (Hint: use `dplyr` verbs for selecting columns and filtering rows.)
-
-Write a few sentences to explain what is DuckDB. Imagine you want to explain it to a layman in an elevator.
+Write a few sentences to explain what is DuckDB. Imagine you want to explain it 
+to a layman in an elevator.
 
 **Answer:**
 
 ```{r}
-
 # Convert arrow table to DuckDB table
-labevents_duckdb_table <- to_duckdb(labevents_parquet_table, "labevents_duckdb")
+write_dataset(labevents_dataset, "labevents.parquet")
+```
 
-# Select columns and filter rows using DuckDB
+```{r}
+labevents_parquet_dataset <- open_dataset("labevents.parquet") 
+labevents_duckdb_table <- labevents_parquet_dataset %>%
+  to_duckdb()
+```
+```{r}
+# Read the Parquet file, select columns and filter rows
 labevents_duckdb <- system.time({
-  labevents_duckdb_result <- dbGetQuery(
-    con = dbConnect(duckdb::duckdb()),
-    statement = "SELECT subject_id, itemid, charttime, valuenum FROM labevents_duckdb WHERE itemid IN (50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931)"
-  )
+  labevents_duckdb_table %>%
+  select(subject_id, itemid, charttime, valuenum) %>%
+  filter(itemid %in% c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931)) %>%
+  collect()
 })
+```
 
+```{r}
 # Display the number of rows and the first 10 rows
-cat("Number of Rows (DuckDB):", nrow(labevents_duckdb_result), "\n")
-head(labevents_duckdb_result, 10)
+cat("Number of Rows (Parquet):", nrow(labevents_duckdb), "\n")
+head(labevents_duckdb, 10)
 ```
 
 ## Q3. Ingest and filter `chartevents.csv.gz`
