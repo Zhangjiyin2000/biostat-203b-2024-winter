@@ -102,7 +102,8 @@ cat("Data.table Time:", data_table_time[3], "seconds\n")
 ```
 Therefore, the fastest function is `fread` in data.table package.
 
-Here compares the parsed data types of the three dataframes or tibbles and shows some differences in the parsed data types:
+Here compares the parsed data types of the three dataframes or tibbles and shows 
+some differences in the parsed data types:
 
 ```{r}
 #| eval: true
@@ -161,6 +162,7 @@ col_types <- cols(
 # Read CSV with explicit column types
 tidyverse_data_explicit_types <- read_csv(file_path, col_types = col_types)
 ```
+
 ```{r}
 #| eval: true
 # Measure runtime
@@ -175,49 +177,55 @@ cat("Tidyverse Time (Explicit Types):", tidyverse_time_explicit_types[3], "secon
 cat("Tidyverse Memory Usage (Explicit Types):", pryr::object_size(tidyverse_data_explicit_types), "bytes\n")
 
 ```
-Therefore, the run time does change compared with the previous 0.682 seconds. The memory usage is 55309608 bytes, slightly larger than the earlier 55309384 bytes.
+Therefore, the run time does change compared with the previous 0.682 seconds. 
+The memory usage is 55309608 bytes, slightly larger than the earlier 55309384 
+bytes.
 
 ## Q2. Ingest big data files
 
-<p align="center">
-  <img src="./bigfile.png" width="50%">
-</p>
-
-Let us focus on a bigger file, `labevents.csv.gz`, which is about 125x bigger than `admissions.csv.gz`.
+Let us focus on a bigger file, `labevents.csv.gz`, which is about 125x bigger 
+than `admissions.csv.gz`.
 ```{bash}
 ls -l ~/mimic/hosp/labevents.csv.gz
 ```
-Display the first 10 lines of this file.
+Display the first 10 lines of this file except the header row.
 ```{bash}
-zcat < ~/mimic/hosp/labevents.csv.gz | head -10
+zcat < ~/mimic/hosp/labevents.csv.gz | head -11
 ```
 
 ### Q2.1 Ingest `labevents.csv.gz` by `read_csv`
 
-<p align="center">
-  <img src="./readr_logo.png" width="20%">
-</p>
-
-Try to ingest `labevents.csv.gz` using `read_csv`. What happens? If it takes more than 5 minutes on your computer, then abort the program and report your findings. 
-
-**Answer:**
-
-```{r}
-# Define file path
-labevents_file_path <- "~/mimic/hosp/labevents.csv.gz"
-# Try reading labevents.csv.gz
-labevents_data <- read_csv(labevents_file_path)
-```
-I waited for 5 minutes and the code did not finish running. Therefore, I aborted the program. The reason is that my memory size is 8GB and I expect this labevents.csv.gz file is too large to fit into my memory.
-
-### Q2.2 Ingest selected columns of `labevents.csv.gz` by `read_csv`
-
-Try to ingest only columns `subject_id`, `itemid`, `charttime`, and `valuenum` in `labevents.csv.gz` using `read_csv`.  Does this solve the ingestion issue? (Hint: `col_select` argument in `read_csv`.)
+Try to ingest `labevents.csv.gz` using `read_csv`. What happens? If it takes 
+more than 5 minutes on your computer, then abort the program and report your 
+findings. 
 
 **Answer:**
 
 ```{r}
 #| eval: true
+# Define file path
+labevents_file_path <- "~/mimic/hosp/labevents.csv.gz"
+```
+
+```{r}
+#| eval: false
+# Try reading labevents.csv.gz
+labevents_data <- read_csv(labevents_file_path)
+```
+I waited for 5 minutes and the code did not finish running. Therefore, I aborted 
+the program. The reason is that my memory size is 8GB and I expect this 
+labevents.csv.gz file is too large to fit into my memory.
+
+### Q2.2 Ingest selected columns of `labevents.csv.gz` by `read_csv`
+
+Try to ingest only columns `subject_id`, `itemid`, `charttime`, and `valuenum` 
+in `labevents.csv.gz` using `read_csv`.  Does this solve the ingestion issue? 
+(Hint: `col_select` argument in `read_csv`.)
+
+**Answer:**
+
+```{r}
+#| eval: false
 labevents_data <- read_csv(
   labevents_file_path, 
   col_select = c(subject_id, itemid, charttime, valuenum)
@@ -225,7 +233,9 @@ labevents_data <- read_csv(
 
 ```
 
-The code did not finish running after 5 minutes. Therefore, I aborted the program. The reason is also that my memory size is 8GB and I expect this labevents.csv.gz file is too large to fit into my memory.
+The code did not finish running after 5 minutes. Therefore, I aborted the 
+program. The reason is also that my memory size is 8GB and I expect this 
+labevents.csv.gz file is too large to fit into my memory.
 
 ### Q2.3 Ingest subset of `labevents.csv.gz`
 
@@ -233,13 +243,27 @@ The code did not finish running after 5 minutes. Therefore, I aborted the progra
   <img src="./linux_logo.png" width="20%">
 </p>
 
-Our first strategy to handle this big data file is to make a subset of the `labevents` data.  Read the [MIMIC documentation](https://mimic.mit.edu/docs/iv/modules/hosp/labevents/) for the content in data file `labevents.csv`.
+Our first strategy to handle this big data file is to make a subset of the 
+`labevents` data. Read the 
+[MIMIC documentation](https://mimic.mit.edu/docs/iv/modules/hosp/labevents/) for 
+the content in data file `labevents.csv`.
 
-In later exercises, we will only be interested in the following lab items: creatinine (50912), potassium (50971), sodium (50983), chloride (50902), bicarbonate (50882), hematocrit (51221), white blood cell count (51301), and glucose (50931) and the following columns: `subject_id`, `itemid`, `charttime`, `valuenum`. Write a Bash command to extract these columns and rows from `labevents.csv.gz` and save the result to a new file `labevents_filtered.csv.gz` in the current working directory. (Hint: use `zcat <` to pipe the output of `labevents.csv.gz` to `awk` and then to `gzip` to compress the output. To save render time, put `#| eval: false` at the beginning of this code chunk.)
+In later exercises, we will only be interested in the following lab items: 
+creatinine (50912), potassium (50971), sodium (50983), chloride (50902), 
+bicarbonate (50882), hematocrit (51221), white blood cell count (51301), and 
+glucose (50931) and the following columns: `subject_id`, `itemid`, `charttime`, 
+`valuenum`. Write a Bash command to extract these columns and rows from 
+`labevents.csv.gz` and save the result to a new file `labevents_filtered.csv.gz` 
+in the current working directory. (Hint: use `zcat <` to pipe the output of 
+`labevents.csv.gz` to `awk` and then to `gzip` to compress the output. To save 
+render time, put `#| eval: false` at the beginning of this code chunk.)
 
 Display the first 10 lines of the new file `labevents_filtered.csv.gz`. How many lines are in this new file? How long does it take `read_csv` to ingest `labevents_filtered.csv.gz`?
 
 **Answer:**
+
+Print some lines of the original file `labevents.csv.gz` to understand its
+structure.
 
 ```{bash}
 #| eval: true
@@ -255,7 +279,7 @@ zcat < ~/mimic/hosp/labevents.csv.gz |
 
 ```{bash}
 #| eval: true
-zcat < labevents_filtered.csv.gz | head -10
+zcat < labevents_filtered.csv.gz | head -11
 ```
 
 ```{bash}
@@ -264,6 +288,7 @@ zcat < labevents_filtered.csv.gz | wc -l
 ```
 
 ```{r}
+#| eval: true
 # Define file path
 labevents_filtered_file_path <- "./labevents_filtered.csv.gz"
 # Measure runtime
@@ -271,21 +296,29 @@ labevents_filtered_data <- system.time(
   read_csv(labevents_filtered_file_path, show_col_types = FALSE)
 )
 ```
+
 ```{r}
+
 # Display runtime and memory usage
 cat("Tidyverse Time (Explicit Types):", labevents_filtered_data[3], "seconds\n")
 ```
 ### Q2.4 Ingest `labevents.csv` by Apache Arrow
 
-<p align="center">
-  <img src="./arrow_logo.png" width="30%">
-</p>
+Our second strategy is to use [Apache Arrow](https://arrow.apache.org/) for 
+larger-than-memory data analytics. Unfortunately Arrow does not work with gz 
+files directly. First decompress `labevents.csv.gz` to `labevents.csv` and put 
+it in the current working directory. To save render time, put `#| eval: false` 
+at the beginning of this code chunk.
 
-Our second strategy is to use [Apache Arrow](https://arrow.apache.org/) for larger-than-memory data analytics. Unfortunately Arrow does not work with gz files directly. First decompress `labevents.csv.gz` to `labevents.csv` and put it in the current working directory. To save render time, put `#| eval: false` at the beginning of this code chunk.
+Then use 
+[`arrow::open_dataset`](https://arrow.apache.org/docs/r/reference/open_dataset.html) 
+to ingest `labevents.csv`, select columns, and filter `itemid` as in Q2.3. How 
+long does the ingest+select+filter process take? Display the number of rows and 
+the first 10 rows of the result tibble, and make sure they match those in Q2.3. 
+(Hint: use `dplyr` verbs for selecting columns and filtering rows.)
 
-Then use [`arrow::open_dataset`](https://arrow.apache.org/docs/r/reference/open_dataset.html) to ingest `labevents.csv`, select columns, and filter `itemid` as in Q2.3. How long does the ingest+select+filter process take? Display the number of rows and the first 10 rows of the result tibble, and make sure they match those in Q2.3. (Hint: use `dplyr` verbs for selecting columns and filtering rows.)
-
-Write a few sentences to explain what is Apache Arrow. Imagine you want to explain it to a layman in an elevator. 
+Write a few sentences to explain what is Apache Arrow. Imagine you want to 
+explain it to a layman in an elevator. 
 
 **Answer:**
 
@@ -316,19 +349,24 @@ can be quickly sorted, searched, and shared by different computer systems.
 
 ### Q2.5 Compress `labevents.csv` to Parquet format and ingest/select/filter
 
-Re-write the csv file `labevents.csv` in the binary Parquet format (Hint: [`arrow::write_dataset`](https://arrow.apache.org/docs/r/reference/write_dataset.html).) How large is the Parquet file(s)? How long does the ingest+select+filter process of the Parquet file(s) take? Display the number of rows and the first 10 rows of the result tibble and make sure they match those in Q2.3. (Hint: use `dplyr` verbs for selecting columns and filtering rows.)
+Re-write the csv file `labevents.csv` in the binary Parquet format (Hint: [`arrow::write_dataset`](https://arrow.apache.org/docs/r/reference/write_dataset.html).) 
+How large is the Parquet file(s)? How long does the ingest+select+filter process 
+of the Parquet file(s) take? Display the number of rows and the first 10 rows of 
+the result tibble and make sure they match those in Q2.3. (Hint: use `dplyr` 
+verbs for selecting columns and filtering rows.)
 
-Write a few sentences to explain what is the Parquet format. Imagine you want to explain it to a layman in an elevator.
+Write a few sentences to explain what is the Parquet format. Imagine you want to 
+explain it to a layman in an elevator.
 
 **Answer:**
 
 ```{r}
 # Re-write the csv file in the binary Parquet format
-write_dataset("labevents.csv")
+write_dataset(labevents_dataset, "labevents.parquet")
 ```
 
 ```{r}
-# Read the Parquet file, select columns, and filter using Apache Arrow
+# Read the Parquet file, select columns and filter rows
 labevents_parquet <- system.time({
   labevents_parquet_dataset <- open_dataset("labevents.parquet")
   labevents_filtered_parquet <- labevents_parquet_dataset %>%
