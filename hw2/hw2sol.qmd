@@ -20,7 +20,7 @@ knitr:
     fig.height: 4
     message: FALSE
 execute:
-  eval: false    
+  eval: true    
 ---
 
 Display machine information for reproducibility:
@@ -38,6 +38,9 @@ library(R.utils)
 library(tidyverse)
 library(dplyr)
 library(duckdb)
+# install.packages("readr")
+library(readr)
+
 ```
 
 Display memory information of your computer
@@ -324,7 +327,7 @@ explain it to a layman in an elevator.
 **Answer:**
 
 ```{bash}
-#| eval: true
+#| eval: false
 gzip -dk < ~/mimic/hosp/labevents.csv.gz > ./labevents.csv
 ```
 
@@ -424,15 +427,65 @@ head(labevents_duckdb, 10)
 
 ## Q3. Ingest and filter `chartevents.csv.gz`
 
-[`chartevents.csv.gz`](https://mimic.mit.edu/docs/iv/modules/icu/chartevents/) contains all the charted data available for a patient. During their ICU stay, the primary repository of a patient’s information is their electronic chart. The `itemid` variable indicates a single measurement type in the database. The `value` variable is the value measured for `itemid`. The first 10 lines of `chartevents.csv.gz` are
+[`chartevents.csv.gz`](https://mimic.mit.edu/docs/iv/modules/icu/chartevents/) 
+contains all the charted data available for a patient. During their ICU stay, 
+the primary repository of a patient’s information is their electronic chart. The 
+`itemid` variable indicates a single measurement type in the database. The 
+`value` variable is the value measured for `itemid`. The first 10 lines of 
+`chartevents.csv.gz` are
 ```{bash}
+#| eval: true
 zcat < ~/mimic/icu/chartevents.csv.gz | head -10
 ```
-[`d_items.csv.gz`](https://mimic.mit.edu/docs/iv/modules/icu/d_items/) is the dictionary for the `itemid` in `chartevents.csv.gz`.
+[`d_items.csv.gz`](https://mimic.mit.edu/docs/iv/modules/icu/d_items/) is the 
+dictionary for the `itemid` in `chartevents.csv.gz`.
 ```{bash}
+#| eval: true
 zcat < ~/mimic/icu/d_items.csv.gz | head -10
 ```
-In later exercises, we are interested in the vitals for ICU patients: heart rate (220045), mean non-invasive blood pressure (220181), systolic non-invasive blood pressure (220179), body temperature in Fahrenheit (223761), and respiratory rate (220210). Retrieve a subset of `chartevents.csv.gz` only containing these items, using the favorite method you learnt in Q2. 
+In later exercises, we are interested in the vitals for ICU patients: heart rate 
+(220045), mean non-invasive blood pressure (220181), systolic non-invasive blood 
+pressure (220179), body temperature in Fahrenheit (223761), and respiratory rate 
+(220210). Retrieve a subset of `chartevents.csv.gz` only containing these items, 
+using the favorite method you learnt in Q2. 
 
-Document the steps and show code. Display the number of rows and the first 10 rows of the result tibble.
+Document the steps and show code. Display the number of rows and the first 10 
+rows of the result tibble.
+
+**Answer:**
+
+I'd like to use the Apache Arrow method in Q2.4 to retrieve a subset of 
+`chartevents.csv.gz`
+
+First, I will decompress `chartevents.csv.gz` and save the result to a
+new file `chartevents.csv` in the current working directory.
+
+```{bash}
+#| eval: false
+gzip -dk < ~/mimic/icu/chartevents.csv.gz > ./chartevents.csv
+```
+
+Then I will use `arrow::open_dataset` to ingest `chartevents.csv` and filter 
+`itemid` that we are interested in: heart rate (220045), mean non-invasive blood 
+pressure (220181), systolic non-invasive blood pressure (220179), body 
+temperature in Fahrenheit (223761), and respiratory rate (220210).
+
+```{r}
+#| eval: TRUE
+# Ingest the data 
+chartevents_dataset <- arrow::open_dataset("chartevents.csv", format = "csv")
+  # Filter rows
+  chartevents_filtered_arrow <- chartevents_dataset %>%
+  filter(itemid %in% c(220045, 220181, 220179, 223761, 220210)) %>%
+  collect()
+```
+
+Here display the number of rows and the first 10 rows.
+```{r}
+#| eval: TRUE
+cat("Number of Rows:", nrow(chartevents_filtered_arrow), "\n")
+head(chartevents_filtered_arrow, 10)
+```
+
+
 
