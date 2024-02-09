@@ -20,7 +20,7 @@ knitr:
     fig.height: 4
     message: FALSE
 execute:
-  eval: true    
+  eval: false    
 ---
 
 Display machine information for reproducibility:
@@ -28,7 +28,7 @@ Display machine information for reproducibility:
 sessionInfo()
 ```
 
-Load necessary libraries (you can add more as needed).
+Load necessary libraries.
 ```{r setup}
 library(arrow)
 library(data.table)
@@ -36,27 +36,31 @@ library(memuse)
 library(pryr)
 library(R.utils)
 library(tidyverse)
+# Load additional libraries
 library(dplyr)
 library(duckdb)
 # install.packages("readr")
 library(readr)
-
 ```
 
-Display memory information of your computer
+Here display memory information of my computer.
 ```{r}
 memuse::Sys.meminfo()
 ```
 
-In this exercise, we explore various tools for ingesting the [MIMIC-IV](https://mimic.mit.edu/docs/iv/) data introduced in [homework 1](https://ucla-biostat-203b.github.io/2024winter/hw/hw1/hw1.html).
+In this exercise, we explore various tools for ingesting the 
+[MIMIC-IV](https://mimic.mit.edu/docs/iv/) data introduced in 
+[homework 1](https://ucla-biostat-203b.github.io/2024winter/hw/hw1/hw1.html).
 
 Display the contents of MIMIC `hosp` and `icu` data folders:
 
 ```{bash}
+#| eval: true
 ls -l ~/mimic/hosp/
 ```
 
 ```{bash}
+#| eval: true
 ls -l ~/mimic/icu/
 ```
 
@@ -64,69 +68,73 @@ ls -l ~/mimic/icu/
 
 ### Q1.1 Speed, memory, and data types
 
-There are quite a few utilities in R for reading plain text data files. Let us test the speed of reading a moderate sized compressed csv file, `admissions.csv.gz`, by three functions: `read.csv` in base R, `read_csv` in tidyverse, and `fread` in the data.table package.
+There are quite a few utilities in R for reading plain text data files. Let us 
+test the speed of reading a moderate sized compressed csv file, 
+`admissions.csv.gz`, by three functions: `read.csv` in base R, `read_csv` in 
+tidyverse, and `fread` in the data.table package.
 
-Which function is fastest? Is there difference in the (default) parsed data types? How much memory does each resultant dataframe or tibble use? (Hint: `system.time` measures run times; `pryr::object_size` measures memory usage.)
+Which function is fastest? Is there difference in the (default) parsed data 
+types? How much memory does each resultant dataframe or tibble use? (Hint: 
+`system.time` measures run times; `pryr::object_size` measures memory usage.)
 
 **Answer:**
 
+Define the path of the file `admissions.csv.gz` as follows:
 ```{r}
-#| eval: true
-# Define file path
+#| eval: TRUE
 file_path <- "~/mimic/hosp/admissions.csv.gz"
 ```
 
+Read CSV using `read.csv` in base R.
 ```{r}
-#| eval: true
-# Read CSV using read.csv in base R
+#| eval: TRUE
 base_r_time <- system.time(base_r_data <- read.csv(file_path, header = TRUE))
 base_r_time
 ```
-
+Read CSV using `read_csv` in tidyverse:
 ```{r}
-#| eval: true
-# Read CSV using read_csv in tidyverse
-tidyverse_time <- system.time(tidyverse_data <- read_csv(file_path, show_col_types = FALSE))
+#| eval: TRUE
+tidyverse_time <- system.time(
+  tidyverse_data <- read_csv(file_path, show_col_types = FALSE)
+  )
 tidyverse_time
 ```
-
+Read CSV using `fread` in data.table:
 ```{r}
-#| eval: true
-# Read CSV using fread in data.table
+#| eval: TRUE
 data_table_time <- system.time(data_table_data <- fread(file_path))
 data_table_time
 ```
+Compare the runtimes of the three functions:
 ```{r}
-#| eval: true
-# Compare the runtimes
+#| eval: TRUE
 cat("Base R Time:", base_r_time[3], "seconds\n")
 cat("Tidyverse Time:", tidyverse_time[3], "seconds\n")
 cat("Data.table Time:", data_table_time[3], "seconds\n")
-
 ```
 Therefore, the fastest function is `fread` in data.table package.
 
 Here compares the parsed data types of the three dataframes or tibbles and shows 
 some differences in the parsed data types:
 
+Here is the parsed data types of the base R dataframe:
 ```{r}
-#| eval: true
+#| eval: TRUE
 str(base_r_data)
 ```
-
+Here is the parsed data types of the tidyverse tibble:
 ```{r}
-#| eval: true
+#| eval: TRUE
 str(tidyverse_data)
 ```
-
+Here is the parsed data types of the data.table dataframe:
 ```{r}
-#| eval: true
+#| eval: TRUE
 str(data_table_data)
 ```
 Here compares the memory usage:
-
 ```{r}
-#| eval: true
+#| eval: TRUE
 cat("Base R Memory Usage:", pryr::object_size(base_r_data), "bytes\n")
 cat("Tidyverse Memory Usage:", pryr::object_size(tidyverse_data), "bytes\n")
 cat("Data.table Memory Usage:", pryr::object_size(data_table_data), "bytes\n")
@@ -134,13 +142,15 @@ cat("Data.table Memory Usage:", pryr::object_size(data_table_data), "bytes\n")
 
 ### Q1.2 User-supplied data types
 
-Re-ingest `admissions.csv.gz` by indicating appropriate column data types in `read_csv`. Does the run time change? How much memory does the result tibble use? (Hint: `col_types` argument in `read_csv`.)
+Re-ingest `admissions.csv.gz` by indicating appropriate column data types in 
+`read_csv`. Does the run time change? How much memory does the result tibble 
+use? (Hint: `col_types` argument in `read_csv`.)
 
 **Answer:**
 
+Explicitly specify column types:
 ```{r}
-#| eval: true
-# Explicitly specify column types
+#| eval: TRUE
 col_types <- cols(
   admission_type = col_character(),
   admit_provider_id = col_character(),
@@ -160,32 +170,39 @@ col_types <- cols(
   edouttime = col_datetime(format = "")
 )
 ```
-
+Read CSV with explicit column types:
 ```{r}
-#| eval: true
-# Read CSV with explicit column types
+#| eval: TRUE
 tidyverse_data_explicit_types <- read_csv(file_path, col_types = col_types)
 ```
-
+Measure runtime and memory usage:
 ```{r}
-#| eval: true
+#| eval: TRUE
 # Measure runtime
 tidyverse_time_explicit_types <- system.time(
   tidyverse_data_explicit_types <- read_csv(file_path, col_types = col_types)
 )
-tidyverse_time_explicit_types
-```
-```{r}
 # Display runtime and memory usage
-cat("Tidyverse Time (Explicit Types):", tidyverse_time_explicit_types[3], "seconds\n")
-cat("Tidyverse Memory Usage (Explicit Types):", pryr::object_size(tidyverse_data_explicit_types), "bytes\n")
-
+cat(
+  "Tidyverse Time (Explicit Types):", 
+  tidyverse_time_explicit_types[3], 
+  "seconds\n"
+  )
+cat(
+  "Tidyverse Memory Usage (Explicit Types):", 
+  pryr::object_size(tidyverse_data_explicit_types), 
+  "bytes\n"
+  )
 ```
 Therefore, the run time does change compared with the previous 0.682 seconds. 
 The memory usage is 55309608 bytes, slightly larger than the earlier 55309384 
 bytes.
 
 ## Q2. Ingest big data files
+
+<p align="center">
+  <img src="./bigfile.png" width="50%">
+</p>
 
 Let us focus on a bigger file, `labevents.csv.gz`, which is about 125x bigger 
 than `admissions.csv.gz`.
@@ -199,6 +216,10 @@ zcat < ~/mimic/hosp/labevents.csv.gz | head -11
 
 ### Q2.1 Ingest `labevents.csv.gz` by `read_csv`
 
+<p align="center">
+  <img src="./readr_logo.png" width="20%">
+</p>
+
 Try to ingest `labevents.csv.gz` using `read_csv`. What happens? If it takes 
 more than 5 minutes on your computer, then abort the program and report your 
 findings. 
@@ -210,10 +231,9 @@ findings.
 # Define file path
 labevents_file_path <- "~/mimic/hosp/labevents.csv.gz"
 ```
-
+Try reading labevents.csv.gz using `read_csv`:
 ```{r}
 #| eval: false
-# Try reading labevents.csv.gz
 labevents_data <- read_csv(labevents_file_path)
 ```
 I waited for 5 minutes and the code did not finish running. Therefore, I aborted 
@@ -228,18 +248,19 @@ in `labevents.csv.gz` using `read_csv`.  Does this solve the ingestion issue?
 
 **Answer:**
 
+Try to ingest only columns specified above:
 ```{r}
 #| eval: false
 labevents_data <- read_csv(
   labevents_file_path, 
   col_select = c(subject_id, itemid, charttime, valuenum)
   )
-
 ```
 
-The code did not finish running after 5 minutes. Therefore, I aborted the 
-program. The reason is also that my memory size is 8GB and I expect this 
-labevents.csv.gz file is too large to fit into my memory.
+This didn't solve the ingestion issue. The code did not finish running after 5 
+minutes. Therefore, I aborted the program. The reason is also that my memory 
+size is 8GB and I expect this labevents.csv.gz file is still too large to fit 
+into my memory.
 
 ### Q2.3 Ingest subset of `labevents.csv.gz`
 
@@ -262,7 +283,9 @@ in the current working directory. (Hint: use `zcat <` to pipe the output of
 `labevents.csv.gz` to `awk` and then to `gzip` to compress the output. To save 
 render time, put `#| eval: false` at the beginning of this code chunk.)
 
-Display the first 10 lines of the new file `labevents_filtered.csv.gz`. How many lines are in this new file? How long does it take `read_csv` to ingest `labevents_filtered.csv.gz`?
+Display the first 10 lines of the new file `labevents_filtered.csv.gz`. How many 
+lines are in this new file? How long does it take `read_csv` to ingest 
+`labevents_filtered.csv.gz`?
 
 **Answer:**
 
@@ -275,38 +298,40 @@ zcat < ~/mimic/hosp/labevents.csv.gz | head -3
 ```
 
 ```{bash}
-#| eval: false
+#| eval: true
 zcat < ~/mimic/hosp/labevents.csv.gz | 
-  awk -F, '{if($5 == 50912 || $5 == 50971 || $5 == 50983 || $5 == 50902 || $5 == 50882 || $5 == 51221 || $5 == 51301 || $5 == 50931) print $2, $5, $7, $10}' | 
+  awk -F, '{if($5 == 50912 || $5 == 50971 || $5 == 50983 || $5 == 50902 || \ 
+  $5 == 50882 || $5 == 51221 || $5 == 51301 || $5 == 50931) \
+  print $2, $5, $7, $10}' | 
   gzip > labevents_filtered.csv.gz
 ```
 
 ```{bash}
 #| eval: true
-zcat < labevents_filtered.csv.gz | head -11
+zcat < labevents_filtered.csv.gz | head -10
 ```
-
+Here displays the number of lines in this new subsetted file:
 ```{bash}
 #| eval: true
 zcat < labevents_filtered.csv.gz | wc -l
 ```
-
+Here measures the runtime:
 ```{r}
-#| eval: true
+#| eval: TRUE
 # Define file path
 labevents_filtered_file_path <- "./labevents_filtered.csv.gz"
 # Measure runtime
 labevents_filtered_data <- system.time(
   read_csv(labevents_filtered_file_path, show_col_types = FALSE)
 )
+labevents_filtered_data
 ```
 
-```{r}
-
-# Display runtime and memory usage
-cat("Tidyverse Time (Explicit Types):", labevents_filtered_data[3], "seconds\n")
-```
 ### Q2.4 Ingest `labevents.csv` by Apache Arrow
+
+<p align="center">
+  <img src="./arrow_logo.png" width="30%">
+</p>
 
 Our second strategy is to use [Apache Arrow](https://arrow.apache.org/) for 
 larger-than-memory data analytics. Unfortunately Arrow does not work with gz 
@@ -315,7 +340,7 @@ it in the current working directory. To save render time, put `#| eval: false`
 at the beginning of this code chunk.
 
 Then use 
-[`arrow::open_dataset`](https://arrow.apache.org/docs/r/reference/open_dataset.html) 
+[`open_dataset`](https://arrow.apache.org/docs/r/reference/open_dataset.html) 
 to ingest `labevents.csv`, select columns, and filter `itemid` as in Q2.3. How 
 long does the ingest+select+filter process take? Display the number of rows and 
 the first 10 rows of the result tibble, and make sure they match those in Q2.3. 
@@ -326,34 +351,51 @@ explain it to a layman in an elevator.
 
 **Answer:**
 
+First decompress `labevents.csv.gz` to `labevents.csv` and put it in the current 
+working directory.
 ```{bash}
 #| eval: false
 gzip -dk < ~/mimic/hosp/labevents.csv.gz > ./labevents.csv
 ```
 
-
+Here displays how long the ingest+select+filter process takes:
 ```{r}
+#| eval: TRUE
 labevents_arrow <- system.time({
   labevents_dataset <- arrow::open_dataset("labevents.csv", format = "csv")
   labevents_filtered_arrow <- labevents_dataset %>%
   select(subject_id, itemid, charttime, valuenum) %>%
-  filter(itemid %in% c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931)) %>%
-  collect()
+  filter(itemid %in% 
+           c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931)) 
 })
 labevents_arrow
 ```
-
+Here display the number of rows and the first 10 rows of the result tibble, and 
+they match those in Q2.3. 
 ```{r}
-cat("Number of Rows:", nrow(labevents_filtered_arrow), "\n")
-head(labevents_filtered_arrow, 10)
+#| eval: TRUE
+labevents_filtered_arrow_collected <- labevents_filtered_arrow %>%
+  collect()
+cat("Number of Rows:", nrow(labevents_filtered_arrow_collected), "\n")
+labevents_filtered_arrow_collected %>%
+  arrange(subject_id) %>%
+  head(10)
+
 ```
+**what is Apache Arrow:**
+
 Instead of bundling up information in a big, complex package, Arrow breaks it 
 down into smaller, organized pieces. These pieces are easy to understand and 
 can be quickly sorted, searched, and shared by different computer systems. 
 
 ### Q2.5 Compress `labevents.csv` to Parquet format and ingest/select/filter
 
-Re-write the csv file `labevents.csv` in the binary Parquet format (Hint: [`arrow::write_dataset`](https://arrow.apache.org/docs/r/reference/write_dataset.html).) 
+<p align="center">
+  <img src="./parquet_logo.png" width="30%">
+</p>
+
+Re-write the csv file `labevents.csv` in the binary Parquet format (Hint: 
+[`write_dataset`](https://arrow.apache.org/docs/r/reference/write_dataset.html).) 
 How large is the Parquet file(s)? How long does the ingest+select+filter process 
 of the Parquet file(s) take? Display the number of rows and the first 10 rows of 
 the result tibble and make sure they match those in Q2.3. (Hint: use `dplyr` 
@@ -363,32 +405,53 @@ Write a few sentences to explain what is the Parquet format. Imagine you want to
 explain it to a layman in an elevator.
 
 **Answer:**
-
+First re-write the csv file in the binary Parquet format:
 ```{r}
-# Re-write the csv file in the binary Parquet format
+#| eval: TRUE
 write_dataset(labevents_dataset, "labevents.parquet")
 ```
-
+Read the Parquet file, select columns and filter rows and measure how long the 
+ingest+select+filter process of the Parquet file(s) takes:
 ```{r}
-# Read the Parquet file, select columns and filter rows
+#| eval: TRUE
 labevents_parquet <- system.time({
   labevents_parquet_dataset <- open_dataset("labevents.parquet")
   labevents_filtered_parquet <- labevents_parquet_dataset %>%
   select(subject_id, itemid, charttime, valuenum) %>%
-  filter(itemid %in% c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931)) %>%
-  collect()
+  filter(itemid %in% 
+           c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931))
 })
+labevents_parquet 
+```
+Here display the number of rows and the first 10 rows and they match those in 
+Q2.3 exactly. 
+```{r}
+#| eval: TRUE
+labevents_filtered_parquet_collected <- labevents_filtered_parquet %>%
+  collect()
+cat("Number of Rows (Parquet):", nrow(labevents_filtered_parquet_collected), "\n")
+labevents_filtered_parquet_collected %>%
+  arrange(subject_id) %>%
+  head(10)
 ```
 
-```{r}
-# Display the number of rows and the first 10 rows
-cat("Number of Rows (Parquet):", nrow(labevents_filtered_parquet), "\n")
-head(labevents_filtered_parquet, 10)
-```
+**what is the Parquet format:**
+
+It's a way to organize and store data so that it takes up less room on your 
+computer, making everything more efficient. Think of it as a super-organized 
+backpack where you can neatly pack all your information, and when you need 
+something, it's super quick to find, like magic! Parquet helps data be compact 
+and easy to manage, which is great for handling lots of information without 
+making your computer feel cluttered.
 
 ### Q2.6 DuckDB
 
-Ingest the Parquet file, convert it to a DuckDB table by [`arrow::to_duckdb`](https://arrow.apache.org/docs/r/reference/to_duckdb.html), 
+<p align="center">
+  <img src="./duckdb_logo.png" width="20%">
+</p>
+
+Ingest the Parquet file, convert it to a DuckDB table by 
+[`arrow::to_duckdb`](https://arrow.apache.org/docs/r/reference/to_duckdb.html), 
 select columns, and filter rows as in Q2.5. How long does the 
 ingest+convert+select+filter process take? Display the number of rows and the 
 first 10 rows of the result tibble and make sure they match those in Q2.3. 
@@ -399,31 +462,43 @@ to a layman in an elevator.
 
 **Answer:**
 
+Read the Parquet file, select columns and filter rows. Then, measure how long 
+the ingest+convert+select+filter process of the Parquet file(s) takes:
 ```{r}
-# Convert arrow table to DuckDB table
-write_dataset(labevents_dataset, "labevents.parquet")
-```
-
-```{r}
-labevents_parquet_dataset <- open_dataset("labevents.parquet") 
-labevents_duckdb_table <- labevents_parquet_dataset %>%
-  to_duckdb()
-```
-```{r}
-# Read the Parquet file, select columns and filter rows
+#| eval: TRUE
 labevents_duckdb <- system.time({
-  labevents_duckdb_table %>%
+  # Ingest the Parquet file
+  labevents_parquet_dataset <- open_dataset("labevents.parquet") 
+  # Convert it to a DuckDB table:
+  labevents_duckdb_table <- labevents_parquet_dataset %>%
+  to_duckdb()
+  labevents_duckdb_table_filtered <- labevents_duckdb_table %>%
   select(subject_id, itemid, charttime, valuenum) %>%
-  filter(itemid %in% c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931)) %>%
-  collect()
+  filter(itemid %in% 
+           c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931)) 
 })
+labevents_duckdb
 ```
 
+Here display the number of rows and the first 10 rows. They match those in Q2.3
+exactly.
 ```{r}
-# Display the number of rows and the first 10 rows
-cat("Number of Rows (Parquet):", nrow(labevents_duckdb), "\n")
-head(labevents_duckdb, 10)
+#| eval: TRUE
+labevents_duckdb_table_filtered_collected <- labevents_duckdb_table_filtered %>%
+  collect() 
+
+cat("Number of Rows:", nrow(labevents_duckdb_table_filtered_collected), "\n")
+labevents_duckdb_table_filtered_collected %>%
+  arrange(subject_id) %>%
+  head(10)
 ```
+
+DuckDB is a special type of database that helps organize and quickly find 
+information, making it perfect for handling large amounts of data. Imagine you 
+have a giant bookshelf with data books, and DuckDB is like the librarian who can 
+swiftly locate the exact book you need, making it a quick and efficient way to 
+manage and retrieve information. It's especially great for tasks where speed and 
+agility in handling data are crucial.
 
 ## Q3. Ingest and filter `chartevents.csv.gz`
 
@@ -474,9 +549,10 @@ temperature in Fahrenheit (223761), and respiratory rate (220210).
 #| eval: TRUE
 # Ingest the data 
 chartevents_dataset <- arrow::open_dataset("chartevents.csv", format = "csv")
-  # Filter rows
+  # Filter the data
   chartevents_filtered_arrow <- chartevents_dataset %>%
   filter(itemid %in% c(220045, 220181, 220179, 223761, 220210)) %>%
+  arrange(subject_id) %>%
   collect()
 ```
 
