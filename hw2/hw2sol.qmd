@@ -20,7 +20,7 @@ knitr:
     fig.height: 4
     message: FALSE
 execute:
-  eval: false    
+  eval: true    
 ---
 
 Display machine information for reproducibility:
@@ -30,6 +30,7 @@ sessionInfo()
 
 Load necessary libraries.
 ```{r setup}
+#| eval: TRUE
 library(arrow)
 library(data.table)
 library(memuse)
@@ -41,10 +42,13 @@ library(dplyr)
 library(duckdb)
 # install.packages("readr")
 library(readr)
+# install.packages("styler")
+library(styler)
 ```
 
 Here display memory information of my computer.
 ```{r}
+#| eval: TRUE
 memuse::Sys.meminfo()
 ```
 
@@ -96,7 +100,7 @@ Read CSV using `read_csv` in tidyverse:
 #| eval: TRUE
 tidyverse_time <- system.time(
   tidyverse_data <- read_csv(file_path, show_col_types = FALSE)
-  )
+)
 tidyverse_time
 ```
 Read CSV using `fread` in data.table:
@@ -148,7 +152,7 @@ use? (Hint: `col_types` argument in `read_csv`.)
 
 **Answer:**
 
-Explicitly specify column types:
+Based on the parsed data types from Q1.1, explicitly specify column types:
 ```{r}
 #| eval: TRUE
 col_types <- cols(
@@ -156,12 +160,12 @@ col_types <- cols(
   admit_provider_id = col_character(),
   admission_location = col_character(),
   discharge_location = col_character(),
-  insurance = col_character(),
+  insurance = col_factor(),
   language = col_character(),
   marital_status = col_character(),
   race = col_character(),
-  subject_id = col_double(),
-  hadm_id = col_double(),
+  subject_id = col_integer(),
+  hadm_id = col_integer(),
   hospital_expire_flag = col_double(),
   admittime = col_datetime(format = ""),
   dischtime = col_datetime(format = ""),
@@ -184,19 +188,18 @@ tidyverse_time_explicit_types <- system.time(
 )
 # Display runtime and memory usage
 cat(
-  "Tidyverse Time (Explicit Types):", 
-  tidyverse_time_explicit_types[3], 
+  "Tidyverse Time (Explicit Types):",
+  tidyverse_time_explicit_types[3],
   "seconds\n"
-  )
+)
 cat(
-  "Tidyverse Memory Usage (Explicit Types):", 
-  pryr::object_size(tidyverse_data_explicit_types), 
+  "Tidyverse Memory Usage (Explicit Types):",
+  pryr::object_size(tidyverse_data_explicit_types),
   "bytes\n"
-  )
+)
 ```
 Therefore, the run time does change compared with the previous 0.682 seconds. 
-The memory usage is 55309608 bytes, slightly larger than the earlier 55309384 
-bytes.
+The memory usage is listed above.
 
 ## Q2. Ingest big data files
 
@@ -252,9 +255,9 @@ Try to ingest only columns specified above:
 ```{r}
 #| eval: false
 labevents_data <- read_csv(
-  labevents_file_path, 
+  labevents_file_path,
   col_select = c(subject_id, itemid, charttime, valuenum)
-  )
+)
 ```
 
 This didn't solve the ingestion issue. The code did not finish running after 5 
@@ -300,8 +303,7 @@ zcat < ~/mimic/hosp/labevents.csv.gz | head -3
 ```{bash}
 #| eval: true
 zcat < ~/mimic/hosp/labevents.csv.gz | 
-  awk -F, '{if($5 == 50912 || $5 == 50971 || $5 == 50983 || $5 == 50902 || \ 
-  $5 == 50882 || $5 == 51221 || $5 == 51301 || $5 == 50931) \
+  awk -F, '{if($5 == 50912 || $5 == 50971 || $5 == 50983 || $5 == 50902 || $5 == 50882 || $5 == 51221 || $5 == 51301 || $5 == 50931) \
   print $2, $5, $7, $10}' | 
   gzip > labevents_filtered.csv.gz
 ```
@@ -364,14 +366,15 @@ Here displays how long the ingest+select+filter process takes:
 labevents_arrow <- system.time({
   labevents_dataset <- arrow::open_dataset("labevents.csv", format = "csv")
   labevents_filtered_arrow <- labevents_dataset %>%
-  select(subject_id, itemid, charttime, valuenum) %>%
-  filter(itemid %in% 
-           c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931)) 
+    select(subject_id, itemid, charttime, valuenum) %>%
+    filter(itemid %in%
+      c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931))
 })
 labevents_arrow
 ```
 Here display the number of rows and the first 10 rows of the result tibble, and 
 they match those in Q2.3. 
+
 ```{r}
 #| eval: TRUE
 labevents_filtered_arrow_collected <- labevents_filtered_arrow %>%
@@ -379,8 +382,8 @@ labevents_filtered_arrow_collected <- labevents_filtered_arrow %>%
 cat("Number of Rows:", nrow(labevents_filtered_arrow_collected), "\n")
 labevents_filtered_arrow_collected %>%
   arrange(subject_id) %>%
-  head(10)
-
+  head(10) %>%
+  mutate(charttime = format(charttime, tz = "UTC", usetz = TRUE))
 ```
 **what is Apache Arrow:**
 
@@ -410,6 +413,11 @@ First re-write the csv file in the binary Parquet format:
 #| eval: TRUE
 write_dataset(labevents_dataset, "labevents.parquet")
 ```
+Here displays the size of the Parquet file(s):
+```{r}
+#| eval: true
+file.size("labevents.parquet")
+```
 Read the Parquet file, select columns and filter rows and measure how long the 
 ingest+select+filter process of the Parquet file(s) takes:
 ```{r}
@@ -417,22 +425,27 @@ ingest+select+filter process of the Parquet file(s) takes:
 labevents_parquet <- system.time({
   labevents_parquet_dataset <- open_dataset("labevents.parquet")
   labevents_filtered_parquet <- labevents_parquet_dataset %>%
-  select(subject_id, itemid, charttime, valuenum) %>%
-  filter(itemid %in% 
-           c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931))
+    select(subject_id, itemid, charttime, valuenum) %>%
+    filter(itemid %in%
+      c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931))
 })
-labevents_parquet 
+labevents_parquet
 ```
 Here display the number of rows and the first 10 rows and they match those in 
-Q2.3 exactly. 
+Q2.3. 
 ```{r}
 #| eval: TRUE
 labevents_filtered_parquet_collected <- labevents_filtered_parquet %>%
   collect()
-cat("Number of Rows (Parquet):", nrow(labevents_filtered_parquet_collected), "\n")
+cat(
+  "Number of Rows (Parquet):", 
+  nrow(labevents_filtered_parquet_collected), 
+  "\n"
+    )
 labevents_filtered_parquet_collected %>%
   arrange(subject_id) %>%
-  head(10)
+  head(10) %>%
+  mutate(charttime = format(charttime, tz = "UTC", usetz = TRUE))
 ```
 
 **what is the Parquet format:**
@@ -468,14 +481,14 @@ the ingest+convert+select+filter process of the Parquet file(s) takes:
 #| eval: TRUE
 labevents_duckdb <- system.time({
   # Ingest the Parquet file
-  labevents_parquet_dataset <- open_dataset("labevents.parquet") 
+  labevents_parquet_dataset <- open_dataset("labevents.parquet")
   # Convert it to a DuckDB table:
   labevents_duckdb_table <- labevents_parquet_dataset %>%
-  to_duckdb()
+    to_duckdb()
   labevents_duckdb_table_filtered <- labevents_duckdb_table %>%
-  select(subject_id, itemid, charttime, valuenum) %>%
-  filter(itemid %in% 
-           c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931)) 
+    select(subject_id, itemid, charttime, valuenum) %>%
+    filter(itemid %in%
+      c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931))
 })
 labevents_duckdb
 ```
@@ -485,7 +498,7 @@ exactly.
 ```{r}
 #| eval: TRUE
 labevents_duckdb_table_filtered_collected <- labevents_duckdb_table_filtered %>%
-  collect() 
+  collect()
 
 cat("Number of Rows:", nrow(labevents_duckdb_table_filtered_collected), "\n")
 labevents_duckdb_table_filtered_collected %>%
@@ -510,8 +523,9 @@ the primary repository of a patient’s information is their electronic chart. T
 `chartevents.csv.gz` are
 ```{bash}
 #| eval: true
-zcat < ~/mimic/icu/chartevents.csv.gz | head -10
+zcat < ~/mimic/icu/chartevents.csv.gz | head -11
 ```
+
 [`d_items.csv.gz`](https://mimic.mit.edu/docs/iv/modules/icu/d_items/) is the 
 dictionary for the `itemid` in `chartevents.csv.gz`.
 ```{bash}
@@ -547,12 +561,11 @@ temperature in Fahrenheit (223761), and respiratory rate (220210).
 
 ```{r}
 #| eval: TRUE
-# Ingest the data 
+# Ingest the data
 chartevents_dataset <- arrow::open_dataset("chartevents.csv", format = "csv")
-  # Filter the data
-  chartevents_filtered_arrow <- chartevents_dataset %>%
+# Filter the data
+chartevents_filtered_arrow <- chartevents_dataset %>%
   filter(itemid %in% c(220045, 220181, 220179, 223761, 220210)) %>%
-  arrange(subject_id) %>%
   collect()
 ```
 
@@ -562,6 +575,3 @@ Here display the number of rows and the first 10 rows.
 cat("Number of Rows:", nrow(chartevents_filtered_arrow), "\n")
 head(chartevents_filtered_arrow, 10)
 ```
-
-
-
