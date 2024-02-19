@@ -211,6 +211,59 @@ ICU stays are a subset of ADT history. This figure shows the vitals of the patie
 
 Do a similar visualization for the patient `10013310`.
 
+#### Answer:
+
+```{r}
+sid_icu <- read_csv("~/mimic/icu/icustays.csv.gz", show_col_types = FALSE) |>
+  filter(subject_id == sid) |>
+  print(width = Inf)
+```
+
+```{r}
+vital <- read_csv("~/mimic/icu/d_items.csv.gz", show_col_types = FALSE) |>
+  #select(itemid, abbreviation) |>
+  print(width = Inf) 
+```
+
+```{r}
+sid_date <- read_csv("~/mimic/icu/datetimeevents.csv.gz", show_col_types = FALSE) |>
+  filter(subject_id == sid) |>
+  #select(subject_id, stay_id, itemid) |>
+  print(width = Inf)
+```
+```{r}
+sid_date <- read_csv("~/mimic/icu/inputevents.csv.gz", show_col_types = FALSE) |>
+  #filter(subject_id == sid) |>
+  print(width = Inf) |>
+  head(10)
+```
+
+
+
+```{r}
+sid_vitals <- left_join(sid_date, vital, by = "itemid") |>
+  print(width = Inf)
+```
+
+
+
+
+
+```{r}
+icu_vitals %>%
+  filter(subject_id == sid) %>%
+  ggplot(aes(x = charttime, y = value, color = vital)) +
+  geom_line() +
+  facet_grid(vital ~ stay_id, scales = "free_y", space = "free_y") +
+  labs(
+    x = "",
+    y = "",
+    title = str_c("Patient ", patient_id, " ICU stays - Vitals"),
+  ) +
+  theme_minimal()
+```
+
+
 ## Q2. ICU stays
 
 `icustays.csv.gz` (<https://mimic.mit.edu/docs/iv/modules/icu/icustays/>) contains data about Intensive Care Units (ICU) stays. The first 10 lines are
@@ -222,9 +275,43 @@ zcat < ~/mimic/icu/icustays.csv.gz | head
 
 Import `icustays.csv.gz` as a tibble `icustays_tble`. 
 
+**Answer:**
+
+```{r}
+icustays_tble <- as_tibble(read_csv("~/mimic/icu/icustays.csv.gz",
+  show_col_types = FALSE)) |>
+  print(width = Inf)
+```
+
 ### Q2.2 Summary and visualization
 
 How many unique `subject_id`? Can a `subject_id` have multiple ICU stays? Summarize the number of ICU stays per `subject_id` by graphs. 
+
+**Answer:**
+
+```{r}
+cat("Number of unique subject_id: ", unique(icustays_tble$subject_id) |>
+  length(), "\n")
+```
+```{r}
+cat("Number of ICU stays: ", nrow(icustays_tble), "\n")
+```
+
+Therefore, a `subject_id` can have multiple ICU stays.
+
+```{r}
+icustays_tble %>%
+  count(subject_id) %>%
+  ggplot(aes(x = n)) +
+  geom_bar() +
+  labs(
+    x = "Number of ICU stays",
+    y = "Number of patients",
+    title = "Number of ICU stays per patient"
+  )
+
+```
+
 
 ## Q3. `admissions` data
 
