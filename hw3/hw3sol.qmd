@@ -49,6 +49,160 @@ Do a similar visualization for the patient with `subject_id` 10013310 using ggpl
 
 Hint: We need to pull information from data files `patients.csv.gz`, `admissions.csv.gz`, `transfers.csv.gz`, `labevents.csv.gz`, `procedures_icd.csv.gz`, `diagnoses_icd.csv.gz`, `d_icd_procedures.csv.gz`, and `d_icd_diagnoses.csv.gz`. For the big file `labevents.csv.gz`, use the Parquet format you generated in Homework 2. For reproducibility, make the Parquet folder `labevents_pq` available at the current working directory `hw3`, for example, by a symbolic link. Make your code reproducible.
 
+#### Answer
+
+Patient of interest is `subject_id` 10013310. 
+```{r}
+sid <- 10001217
+```
+
+Explore the information of ADT of the patient `sid`.
+```{r}
+sid_adt <- read_csv("~/mimic/hosp/transfers.csv.gz", show_col_types = FALSE) |>
+  filter(subject_id == sid) |>
+  print(width = Inf)
+```
+Plot the line of ADT:
+```{r}
+sid_adt %>%
+  filter(eventtype != "discharge") %>%
+  ggplot(aes(
+    x = intime, xend = outtime,
+    y = "ADT", yend = "ADT",
+    color = careunit,
+    linewidth = str_detect(careunit, "(ICU|CCU)"),
+  )) +
+  geom_segment() +
+  labs(
+    x = "",
+    y = "",
+    title = str_c("Patient ", sid)
+  ) +
+  theme(
+    legend.position = "bottom", # Move legend to the bottom
+    legend.box = "horizontal" # Display legend items in one row
+  )
+```
+Create a symbolic link for the Parquet folder `labevents_pq` at the current working directory `hw3`.
+```{bash}
+#| eval=FALSE
+ln -s ~/mimic/hw2/labevents.parquet labevents_pq
+```
+
+
+Retrieve the lab events of the patient `sid`.
+```{r}
+sid_lab <- open_dataset("~/203b-hw/hw3/labevents_pq/labevents.parquet") %>%
+  filter(subject_id == sid) %>%
+  print(width = Inf)
+```
+Convert the lab events to a tibble.
+```{r}
+sid_lab_tbl <- as.tibble(sid_lab)
+sid_lab_tbl
+```
+
+Plot the line of Lab:
+```{r}
+sid_lab_tbl %>%
+  ggplot(aes(
+    x = charttime,
+    y = "Lab"
+  )) +
+  geom_point(
+    shape = 3
+  ) +
+  labs(
+    x = "",
+    y = "",
+    title = str_c("Patient ", sid)
+  ) +
+  theme(
+    legend.position = "bottom", # Move legend to the bottom
+    legend.box = "horizontal" # Display legend items in one row
+  )
+```
+
+Explore the information of procedures of the patient `sid` in the file `procedures_icd.csv.gz`.
+```{r}
+sid_proc <- read_csv("~/mimic/hosp/procedures_icd.csv.gz", show_col_types = FALSE) |>
+  filter(subject_id == sid) |>
+  print(width = Inf)
+```
+
+
+Explore the information of procedures of the patient `sid` in the file `d_icd_procedures.csv.gz`.
+
+```{r}
+sid_d_proc <- read_csv("~/mimic/hosp/d_icd_procedures.csv.gz", show_col_types = FALSE) |>
+  filter(icd_code %in% sid_proc$icd_code) |>
+  print(width = Inf)
+```
+Join these two tables.
+```{r}
+sid_proc_merge <- left_join(sid_proc, sid_d_proc, by = "icd_code") |>
+  print(width = Inf)
+```
+Plot the line of Procedure:
+```{r}
+sid_proc_merge %>%
+  ggplot(aes(
+    x = chartdate,
+    y = "Procedure",
+    shape = long_title
+  )) +
+  geom_point() +
+  labs(
+    x = "",
+    y = "",
+    title = str_c("Patient ", sid)
+  ) +
+  theme(
+    legend.position = "bottom", # Move legend to the bottom
+    legend.box = "horizontal" # Display legend items in one row
+  )
+```
+
+```{r}
+sid_adt_filter <- sid_adt %>%
+  filter(eventtype != "discharge")
+```
+
+```{r}
+ggplot() +
+  geom_segment(
+    data = sid_adt_filter,
+    aes(
+      x = intime, xend = outtime,
+      y = "ADT", yend = "ADT",
+      color = careunit,
+      linewidth = str_detect(careunit, "(ICU|CCU)")
+    )
+  ) +
+  geom_point(
+    data = sid_lab_tbl,
+    aes(x = charttime, y = "Lab"),
+    shape = 3
+  ) +
+  geom_point(
+    data = sid_proc_merge,
+    aes(x = chartdate, y = "Procedure", shape = long_title),
+    color = "black",
+    size = 3
+  ) +
+  labs(
+    x = "",
+    y = "",
+    title = str_c("Patient ", sid),
+    shape = "Procedure"
+  ) +
+  theme(
+    legend.position = "bottom",
+    legend.box = "vertical"
+  )
+```
+
+
 ### Q1.2 ICU stays
 
 ICU stays are a subset of ADT history. This figure shows the vitals of the patient `10001217` during ICU stays. The x-axis is the calendar time, and the y-axis is the value of the vital. The color of the line represents the type of vital. The facet grid shows the abbreviation of the vital and the stay ID.
@@ -173,4 +327,3 @@ Summarize the following information about the ICU stay cohort `mimic_icu_cohort`
 - Length of ICU stay `los` vs the average vital measurements within the first hour of ICU stay
 
 - Length of ICU stay `los` vs first ICU unit
-
