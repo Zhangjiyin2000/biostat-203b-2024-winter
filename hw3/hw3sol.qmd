@@ -311,7 +311,7 @@ icustays_tble %>%
   )
 
 ```
-
+Therefore, most patients have only one ICU stay, and a few patients have more than one ICU stay. It seems that with the increase of ICU stays, the number of patients decreases.
 
 ## Q3. `admissions` data
 
@@ -323,6 +323,14 @@ zcat < ~/mimic/hosp/admissions.csv.gz | head
 ### Q3.1 Ingestion
 
 Import `admissions.csv.gz` as a tibble `admissions_tble`.
+
+**Answer:**
+
+```{r}
+admissions_tble <- as_tibble(read_csv("~/mimic/hosp/admissions.csv.gz",
+  show_col_types = FALSE)) |>
+  print(width = Inf)
+```
 
 ### Q3.2 Summary and visualization
 
@@ -337,6 +345,58 @@ According to the [MIMIC-IV documentation](https://mimic.mit.edu/docs/iv/about/co
 
 > All dates in the database have been shifted to protect patient confidentiality. Dates will be internally consistent for the same patient, but randomly distributed in the future. Dates of birth which occur in the present time are not true dates of birth. Furthermore, dates of birth which occur before the year 1900 occur if the patient is older than 89. In these cases, the patient’s age at their first admission has been fixed to 300.
 
+**Answer:**
+
+```{r}
+admissions_tble %>%
+  count(subject_id) %>%
+  ggplot(aes(x = n)) +
+  geom_bar() +
+  labs(
+    x = "Number of admissions",
+    y = "Number of patients",
+    title = "Number of admissions per patient"
+  )
+```
+
+
+```{r}
+admissions_tble %>%
+  ggplot(aes(x = hour(admittime))) +
+  geom_bar() +
+  labs(
+    x = "Admission hour",
+    y = "Number of admissions",
+    title = "Admission hour"
+  )
+```
+
+```{r}
+admissions_tble %>%
+  ggplot(aes(x = minute(admittime))) +
+  geom_bar() +
+  labs(
+    x = "Admission minute",
+    y = "Number of admissions",
+    title = "Admission minute"
+  )
+```
+
+```{r}
+admissions_tble %>%
+  mutate(los = dischtime - admittime) %>%
+  ggplot(aes(x = los)) +
+  geom_histogram() +
+  labs(
+    x = "Length of stay",
+    y = "Number of admissions",
+    title = "Length of stay"
+  )
+
+```
+
+
+
 ## Q4. `patients` data
 
 Patient information is available in `patients.csv.gz`. See <https://mimic.mit.edu/docs/iv/modules/hosp/patients/> for details of each field in this file. The first 10 lines are
@@ -348,9 +408,34 @@ zcat < ~/mimic/hosp/patients.csv.gz | head
 
 Import `patients.csv.gz` (<https://mimic.mit.edu/docs/iv/modules/hosp/patients/>) as a tibble `patients_tble`.
 
+**Answer:**
+
+```{r}
+patients_tble <- as_tibble(read_csv("~/mimic/hosp/patients.csv.gz",
+  show_col_types = FALSE)) |>
+  print(width = Inf)
+```
+
 ### Q4.2 Summary and visualization
 
 Summarize variables `gender` and `anchor_age` by graphics, and explain any patterns you see.
+
+**Answer:**
+
+```{r}
+patients_tble %>%
+  ggplot(aes(x = anchor_age, fill = gender)) +
+  geom_histogram(binwidth = 5, position = "dodge", alpha = 0.7) +
+  labs(
+    x = "Anchor Age",
+    y = "Count",
+    title = "Distribution of Anchor Age by Gender"
+  ) +
+  scale_fill_manual(values = c("blue", "pink")) +  # Customize fill colors if needed
+  theme_minimal()
+
+```
+Based on the histogram, the distribution of anchor age is similar. When the anchor age is small, the number of female patients is slightly higher than the males. When the anchor age is large, the number of female patients is also slightly higher than the number of males. When the anchor age is in the middle, the number of female patients is slightly lower than the number of the males.
 
 ## Q5. Lab results
 
