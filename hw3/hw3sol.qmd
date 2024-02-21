@@ -27,6 +27,7 @@ library(memuse)
 library(pryr)
 library(R.utils)
 library(tidyverse)
+library(dplyr)
 ```
 
 Display your machine memory.
@@ -221,21 +222,42 @@ sid_icu <- read_csv("~/mimic/icu/icustays.csv.gz", show_col_types = FALSE) |>
 
 ```{r}
 vital <- read_csv("~/mimic/icu/d_items.csv.gz", show_col_types = FALSE) |>
-  #select(itemid, abbreviation) |>
-  print(width = Inf) 
+  # select(itemid, abbreviation) |>
+  print(width = Inf)
 ```
+
+```{r}
+table(vital$abbreviation)
+```
+
+
+
 
 ```{r}
 sid_date <- read_csv("~/mimic/icu/datetimeevents.csv.gz", show_col_types = FALSE) |>
   filter(subject_id == sid) |>
-  #select(subject_id, stay_id, itemid) |>
+  # select(subject_id, stay_id, itemid) |>
   print(width = Inf)
 ```
+
 ```{r}
-sid_date <- read_csv("~/mimic/icu/inputevents.csv.gz", show_col_types = FALSE) |>
-  #filter(subject_id == sid) |>
-  print(width = Inf) |>
-  head(10)
+chartevents_dataset <- open_dataset("chartevents_pq/chartevents.parquet") |>
+  filter(subject_id == sid) |>
+  print(width = Inf)
+```
+
+```{r}
+arrow_data <- chartevents_dataset$.data
+
+# Convert the Arrow data to a tibble
+df <- as_tibble(arrow_data)
+
+# Display the table in a new window
+View(df)
+
+```
+
+```{r}
 ```
 
 
@@ -279,7 +301,8 @@ Import `icustays.csv.gz` as a tibble `icustays_tble`.
 
 ```{r}
 icustays_tble <- as_tibble(read_csv("~/mimic/icu/icustays.csv.gz",
-  show_col_types = FALSE)) |>
+  show_col_types = FALSE
+)) |>
   print(width = Inf)
 ```
 
@@ -309,7 +332,6 @@ icustays_tble %>%
     y = "Number of patients",
     title = "Number of ICU stays per patient"
   )
-
 ```
 Therefore, most patients have only one ICU stay, and a few patients have more than one ICU stay. It seems that with the increase of ICU stays, the number of patients decreases.
 
@@ -328,7 +350,8 @@ Import `admissions.csv.gz` as a tibble `admissions_tble`.
 
 ```{r}
 admissions_tble <- as_tibble(read_csv("~/mimic/hosp/admissions.csv.gz",
-  show_col_types = FALSE)) |>
+  show_col_types = FALSE
+)) |>
   print(width = Inf)
 ```
 
@@ -392,7 +415,6 @@ admissions_tble %>%
     y = "Number of admissions",
     title = "Length of stay"
   )
-
 ```
 
 
@@ -412,7 +434,8 @@ Import `patients.csv.gz` (<https://mimic.mit.edu/docs/iv/modules/hosp/patients/>
 
 ```{r}
 patients_tble <- as_tibble(read_csv("~/mimic/hosp/patients.csv.gz",
-  show_col_types = FALSE)) |>
+  show_col_types = FALSE
+)) |>
   print(width = Inf)
 ```
 
@@ -431,9 +454,8 @@ patients_tble %>%
     y = "Count",
     title = "Distribution of Anchor Age by Gender"
   ) +
-  scale_fill_manual(values = c("blue", "pink")) +  # Customize fill colors if needed
+  scale_fill_manual(values = c("blue", "pink")) + # Customize fill colors if needed
   theme_minimal()
-
 ```
 Based on the histogram, the distribution of anchor age is similar. When the anchor age is small, the number of female patients is slightly higher than the males. When the anchor age is large, the number of female patients is also slightly higher than the number of males. When the anchor age is in the middle, the number of female patients is slightly lower than the number of the males.
 
@@ -456,6 +478,23 @@ We are interested in the lab measurements of creatinine (50912), potassium (5097
 
 Hint: Use the Parquet format you generated in Homework 2. For reproducibility, make `labevents_pq` folder available at the current working directory `hw3`, for example, by a symbolic link.
 
+**Answer:**
+
+```{r}
+labevents_tble <- as_tibble(
+  open_dataset("labevents_pq/labevents.parquet")
+) %>%
+  filter(itemid %in% c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931)) %>%
+  filter(subject_id %in% icustays_tble$subject_id) %>%
+  group_by(subject_id, stay_id) %>%
+  filter(storetime == max(storetime)) %>%
+  ungroup() %>%
+  select(subject_id, stay_id, itemid, value) %>%
+  pivot_wider(names_from = itemid, values_from = value)
+```
+
+
+
 ## Q6. Vitals from charted events
 
 `chartevents.csv.gz` (<https://mimic.mit.edu/docs/iv/modules/icu/chartevents/>) contains all the charted data available for a patient. During their ICU stay, the primary repository of a patient’s information is their electronic chart. The `itemid` variable indicates a single measurement type in the database. The `value` variable is the value measured for `itemid`. The first 10 lines of `chartevents.csv.gz` are
@@ -474,6 +513,29 @@ We are interested in the vitals for ICU patients: heart rate (220045), systolic 
 
 Hint: Use the Parquet format you generated in Homework 2. For reproducibility, make `chartevents_pq` folder available at the current working directory, for example, by a symbolic link.
 
+**Answer:**
+
+First, make a symbolic link for `chartevents_pq` folder at the current working directory to the Parquet format I generated in Homework2.
+
+```{bash}
+#| eval=FALSE
+ln -s ~/203b-hw/hw2/chartevents.parquet chartevents_pq
+```
+
+```{r}
+chartevents_tble <- as_tibble(
+  open_dataset("chartevents_pq/chartevents.parquet")
+) %>%
+  filter(itemid %in% c(220045, 220179, 220180, 223761, 220210)) %>%
+  filter(subject_id %in% icustays_tble$subject_id) %>%
+  group_by(subject_id, stay_id) %>%
+  filter(charttime == min(charttime)) %>%
+  ungroup() %>%
+  select(subject_id, stay_id, value) %>%
+  pivot_wider(names_from = itemid, values_from = value) |>
+  print(width = Inf)
+```
+
 ## Q7. Putting things together
 
 Let us create a tibble `mimic_icu_cohort` for all ICU stays, where rows are all ICU stays of adults (age at `intime` >= 18) and columns contain at least following variables
@@ -487,6 +549,7 @@ Let us create a tibble `mimic_icu_cohort` for all ICU stays, where rows are all 
 The final `mimic_icu_cohort` should have one row per ICU stay and columns for each variable.
 
 ![](mimic_icu_cohort.png)
+**Answer:**
 
 ## Q8. Exploratory data analysis (EDA)
 
@@ -494,8 +557,22 @@ Summarize the following information about the ICU stay cohort `mimic_icu_cohort`
 
 - Length of ICU stay `los` vs demographic variables (race, insurance, marital_status, gender, age at intime)
 
+**Answer:**
+
+
+
 - Length of ICU stay `los` vs the last available lab measurements before ICU stay
+
+**Answer:**
+
+
 
 - Length of ICU stay `los` vs the average vital measurements within the first hour of ICU stay
 
+**Answer:**
+
+
+
 - Length of ICU stay `los` vs first ICU unit
+
+**Answer:**
