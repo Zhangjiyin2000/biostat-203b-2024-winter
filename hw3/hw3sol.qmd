@@ -204,6 +204,100 @@ ggplot() +
 ```
 
 
+```{r}
+sid_adt <- read_csv("~/mimic/hosp/transfers.csv.gz") |>
+  filter(subject_id == 10013310) |>
+  filter(eventtype != "discharge") |>
+  print(width = Inf) 
+```
+
+```{r}
+sid_proce <- read_csv("~/mimic/hosp/procedures_icd.csv.gz") |>
+  filter(subject_id == 10013310) |>
+  print(width = Inf) 
+```
+
+```{r}
+sid_lab <- open_dataset("labevents_pq/labevents.parquet", format = "parquet") |>
+  filter(subject_id %in% 10013310) |>
+  collect() %>%
+  print(width = Inf) 
+```
+
+```{r}
+sid_patients <- read_csv("~/mimic/hosp/patients.csv.gz", show_col_types = FALSE) |>
+  filter(subject_id == 10013310) |>
+  print(width = Inf)
+```
+
+```{r}
+sid_admission <- read_csv("~/mimic/hosp/admissions.csv.gz", show_col_types = FALSE) |>
+  filter(subject_id == 10013310) |>
+  print(width = Inf) 
+```
+
+```{r}
+sid_proce2 <- read_csv("~/mimic/hosp/d_icd_procedures.csv.gz", show_col_types = FALSE) |>
+  print(width = Inf)
+```
+
+```{r}
+sid_dia <- read_csv("~/mimic/hosp/diagnoses_icd.csv.gz", show_col_types = FALSE) |>
+  filter(subject_id == 10013310) |>
+  print(width = Inf)
+```
+
+```{r}
+sid_dia2 <- read_csv("~/mimic/hosp/d_icd_diagnoses.csv.gz", show_col_types = FALSE) |>
+  print(width = Inf) 
+```
+
+```{r}
+sid_dia_all <- left_join(sid_dia, sid_dia2, by = "icd_code", "icd_version")
+count(sid_dia_all, long_title, sort = T)
+sid_proce_all <- left_join(sid_proce, sid_proce2, by = "icd_code", "icd_version")
+```
+
+```{r}
+sid_proce_all$seq_num <- as.factor(sid_proce$seq_num)
+sid_proce_all$seq_num
+sid_proce_all$chartdate <- as.POSIXct(sid_proce$chartdate)
+sid_proce_all$chartdate
+```
+
+```{r}
+sid_adt <- sid_adt %>%
+  mutate(line_width = ifelse(str_detect(careunit, "(ICU|CCU)"), 3, 1))
+ggplot() +
+  geom_point(
+    data = sid_proce_all, 
+    aes(x = chartdate, y = "Procedure", shape = long_title)) +
+  geom_point(
+    data = sid_lab, 
+    aes(x = charttime, y = "Lab"), shape = 3) +
+  geom_segment(
+    data = sid_adt, 
+    aes(x = intime, xend = outtime, y = "ADT", yend = "ADT", color = careunit), 
+    size = sid_adt$line_width) +
+  scale_y_discrete(limits = c("Procedure", "Lab", "ADT")) +
+  labs(
+    x = "Calendar Time",
+    y = "",
+    color = "Care Unit",
+    shape = "Procedure",
+    title = paste(
+      "Patient ", "10013310, ", "F, ",
+      "70 ", "years old, ", "BLACK/AFRICAN"
+    ),
+    subtitle = "Acute on chronic systolic (congestive) heart failure \nHyperlipidemia, unspecified \nLong term (current) use of insulin \nOther chronic pain"
+  ) +
+  theme(legend.position = "bottom", legend.box = "vertical")
+```
+
+
+
+
+
 ### Q1.2 ICU stays
 
 ICU stays are a subset of ADT history. This figure shows the vitals of the patient `10001217` during ICU stays. The x-axis is the calendar time, and the y-axis is the value of the vital. The color of the line represents the type of vital. The facet grid shows the abbreviation of the vital and the stay ID.
@@ -230,14 +324,14 @@ vital <- read_csv("~/mimic/icu/d_items.csv.gz", show_col_types = FALSE) |>
 table(vital$abbreviation)
 ```
 
-
-
-
 ```{r}
 sid_date <- read_csv("~/mimic/icu/datetimeevents.csv.gz", show_col_types = FALSE) |>
   filter(subject_id == sid) |>
   # select(subject_id, stay_id, itemid) |>
   print(width = Inf)
+```
+```{r}
+rm(list = (ls()))
 ```
 
 ```{r}
@@ -248,17 +342,19 @@ chartevents_dataset <- open_dataset("chartevents_pq/chartevents.parquet") |>
 
 ```{r}
 arrow_data <- chartevents_dataset$.data
-
-# Convert the Arrow data to a tibble
-df <- as_tibble(arrow_data)
-
-# Display the table in a new window
-View(df)
-
 ```
 
 ```{r}
+# Convert the Arrow data to a tibble
+df <- as_tibble(arrow_data)
 ```
+
+```{r}
+# Display the table in a new window
+View(df)
+```
+
+
 
 
 
