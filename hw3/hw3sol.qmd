@@ -404,14 +404,17 @@ stay is large.
 
 ## Q4. `patients` data
 
-Patient information is available in `patients.csv.gz`. See <https://mimic.mit.edu/docs/iv/modules/hosp/patients/> for details of each field in this file. The first 10 lines are
+Patient information is available in `patients.csv.gz`. See <https://mimic.mit.edu/docs/iv/modules/hosp/patients/> for details of each field 
+in this file. The first 10 lines are
+
 ```{bash}
 zcat < ~/mimic/hosp/patients.csv.gz | head
 ```
 
 ### Q4.1 Ingestion
 
-Import `patients.csv.gz` (<https://mimic.mit.edu/docs/iv/modules/hosp/patients/>) as a tibble `patients_tble`.
+Import `patients.csv.gz` (<https://mimic.mit.edu/docs/iv/modules/hosp/patients/>) 
+as a tibble `patients_tble`.
 
 **Answer:**
 
@@ -424,7 +427,8 @@ patients_tble <- as_tibble(read_csv("~/mimic/hosp/patients.csv.gz",
 
 ### Q4.2 Summary and visualization
 
-Summarize variables `gender` and `anchor_age` by graphics, and explain any patterns you see.
+Summarize variables `gender` and `anchor_age` by graphics, and explain any 
+patterns you see.
 
 **Answer:**
 
@@ -437,10 +441,17 @@ patients_tble %>%
     y = "Count",
     title = "Distribution of Anchor Age by Gender"
   ) +
-  scale_fill_manual(values = c("blue", "pink")) + # Customize fill colors if needed
+  scale_fill_manual(values = c("blue", "pink")) + 
   theme_minimal()
 ```
-Based on the histogram, the distribution of anchor age is similar. When the anchor age is small, the number of female patients is slightly higher than the males. When the anchor age is large, the number of female patients is also slightly higher than the number of males. When the anchor age is in the middle, the number of female patients is slightly lower than the number of the males.
+Based on the histogram, the distribution of anchor age is similar. When the 
+anchor age is small, the number of female patients is slightly higher than the 
+males. When the anchor age is large, the number of female patients is also 
+slightly higher than the number of males. When the anchor age is in the middle, 
+the number of female patients is slightly lower than the number of the males. 
+Overall, the age distribution peaks at approximately 25 years, declines until 
+around 35 years, rises again until about 55 years, and then decreases with 
+further age increases.
 
 ## Q5. Lab results
 
