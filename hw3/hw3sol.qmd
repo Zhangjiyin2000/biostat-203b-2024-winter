@@ -58,7 +58,8 @@ sid_adt <- read_csv("~/mimic/hosp/transfers.csv.gz") |>
   filter(eventtype != "discharge") |>
   mutate(
     linewidth = ifelse(
-      str_detect(careunit, "(ICU|CCU)"), 3, 1)
+      str_detect(careunit, "(ICU|CCU)"), 3, 1
+    )
   ) |>
   print(width = Inf)
 ```
@@ -206,20 +207,20 @@ time_vitals <- left_join(sid_icu, sid_vitals, by = "stay_id") |>
 time_vitals %>%
   mutate(charttime = charttime + lubridate::hours(6)) |>
   ggplot() +
-  #geom_line(
-   # aes(x = charttime, y = value, color = abbreviation)
-  #) +
+  # geom_line(
+  # aes(x = charttime, y = value, color = abbreviation)
+  # ) +
   geom_point(
     aes(x = charttime, y = value, color = abbreviation),
     na.rm = TRUE
   ) +
-  #geom_segment(
-   # aes(x = lag(charttime), y = lag(value),
-    #    xend = charttime, yend = value, color = abbreviation),
-    #data = . %>% group_by(abbreviation, stay_id) %>%
-     # arrange(charttime) %>%
-    #na.rm = TRUE
-  #) +
+  # geom_segment(
+  # aes(x = lag(charttime), y = lag(value),
+  #    xend = charttime, yend = value, color = abbreviation),
+  # data = . %>% group_by(abbreviation, stay_id) %>%
+  # arrange(charttime) %>%
+  # na.rm = TRUE
+  # ) +
   facet_grid(abbreviation ~ stay_id, scales = "free_x", space = "free_x") +
   labs(
     x = "",
@@ -228,14 +229,16 @@ time_vitals %>%
   ) +
   theme_light() +
   scale_x_datetime(
-    #breaks = scales::date_breaks("6 hours"),  # 设置6小时的间隔
-    #labels = scales::date_format("%b %d %H:%M"),  # 设置日期时间的显示格式
+    # breaks = scales::date_breaks("6 hours"),  # 设置6小时的间隔
+    # labels = scales::date_format("%b %d %H:%M"),  # 设置日期时间的显示格式
   ) +
-  theme(legend.position = "none",
-        strip.text = element_text(size = 6),
-        #panel.spacing = unit(0.5, "lines"),
-        axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) 
-  #scale_y_reverse()
+  theme(
+    legend.position = "none",
+    strip.text = element_text(size = 6),
+    # panel.spacing = unit(0.5, "lines"),
+    axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)
+  )
+# scale_y_reverse()
 ```
 
 
@@ -256,6 +259,9 @@ Import `icustays.csv.gz` as a tibble `icustays_tble`.
 icustays_tble <- as_tibble(read_csv("~/mimic/icu/icustays.csv.gz",
   show_col_types = FALSE
 )) |>
+  mutate(subject_id = as.double(subject_id)) |>
+  mutate(stay_id = as.double(stay_id)) |>
+  arrange(subject_id, stay_id) |>
   print(width = Inf)
 ```
 
@@ -441,7 +447,7 @@ patients_tble %>%
     y = "Count",
     title = "Distribution of Anchor Age by Gender"
   ) +
-  scale_fill_manual(values = c("blue", "pink")) + 
+  scale_fill_manual(values = c("blue", "pink")) +
   theme_minimal()
 ```
 Based on the histogram, the distribution of anchor age is similar. When the 
@@ -455,12 +461,16 @@ further age increases.
 
 ## Q5. Lab results
 
-`labevents.csv.gz` (<https://mimic.mit.edu/docs/iv/modules/hosp/labevents/>) contains all laboratory measurements for patients. The first 10 lines are
+`labevents.csv.gz` (<https://mimic.mit.edu/docs/iv/modules/hosp/labevents/>) 
+contains all laboratory measurements for patients. The first 10 lines are
+
 ```{bash}
 zcat < ~/mimic/hosp/labevents.csv.gz | head
 ```
 
-`d_labitems.csv.gz` (<https://mimic.mit.edu/docs/iv/modules/hosp/d_labitems/>) is the dictionary of lab measurements. 
+`d_labitems.csv.gz` (<https://mimic.mit.edu/docs/iv/modules/hosp/d_labitems/>) 
+is the dictionary of lab measurements. 
+
 ```{bash}
 zcat < ~/mimic/hosp/d_labitems.csv.gz | head
 ```
@@ -475,19 +485,85 @@ Hint: Use the Parquet format you generated in Homework 2. For reproducibility, m
 **Answer:**
 
 ```{r}
-labevents_tble <- as_tibble(
-  open_dataset("labevents_pq/labevents.parquet")
-) %>%
-  filter(itemid %in% c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931)) %>%
-  filter(subject_id %in% icustays_tble$subject_id) %>%
-  group_by(subject_id, stay_id) %>%
-  filter(storetime == max(storetime)) %>%
-  ungroup() %>%
-  select(subject_id, stay_id, itemid, value) %>%
-  pivot_wider(names_from = itemid, values_from = value)
+labevents_parquet_dataset <- open_dataset("labevents_pq/labevents.parquet") |>
+  print(width = Inf)
+```
+
+```{r}
+labevents_filtered_parquet <- labevents_parquet_dataset %>%
+  mutate(subject_id = as.double(subject_id)) %>%
+  mutate(itemid = as.double(itemid)) %>%
+  select(subject_id, itemid, storetime, valuenum) %>%
+  filter(itemid %in%
+    c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931)) %>%
+  arrange(subject_id, storetime) %>%
+  collect() 
+```
+
+```{r}
+labevents_filtered_parquet <- as_tibble(labevents_filtered_parquet) |>
+  print(width = Inf)
+```
+Merge the `stay_id` with the dataset above:
+
+```{r}
+labevents_merge <- inner_join(
+  labevents_filtered_parquet,
+  icustays_tble,
+  by = "subject_id"
+) |>
+  filter(storetime < intime) |>
+  group_by(subject_id, stay_id, itemid) %>%
+  arrange(subject_id, stay_id, storetime) %>%
+  slice_tail(n = 1) |>
+  ungroup()
+```
+
+```{r}
+labevents_d_item <- read_csv("~/mimic/hosp/d_labitems.csv.gz",
+  show_col_types = FALSE
+) |>
+  filter(itemid %in%
+    c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931)) |>
+  select(itemid, label) |>
+  print(width = Inf)
+```
+
+```{r}
+labevents_d <- left_join(
+  labevents_merge,
+  labevents_d_item,
+  by = "itemid"
+) |>
+  collect() |>
+  print(width = Inf)
 ```
 
 
+```{r}
+labevents_tble <- labevents_d %>%
+  pivot_wider(
+    id_cols = c(subject_id, stay_id),
+    names_from = label,
+    values_from = valuenum,
+    values_fn = list(valuenum = ~ .[1])
+  ) %>%
+  # rename_with(~str_to_lower(.), everything())
+  rename(
+    "wbc" = "White Blood Cells",
+    "bicarbonate" = "Bicarbonate",
+    "chloride" = "Chloride",
+    "creatinine" = "Creatinine",
+    "glucose" = "Glucose",
+    "potassium" = "Potassium",
+    "sodium" = "Sodium",
+    "hematocrit" = "Hematocrit"
+  )
+```
+
+```{r}
+labevents_tble
+```
 
 ## Q6. Vitals from charted events
 
@@ -517,17 +593,81 @@ ln -s ~/203b-hw/hw2/chartevents.parquet chartevents_pq
 ```
 
 ```{r}
-chartevents_tble <- as_tibble(
-  open_dataset("chartevents_pq/chartevents.parquet")
-) %>%
-  filter(itemid %in% c(220045, 220179, 220180, 223761, 220210)) %>%
-  filter(subject_id %in% icustays_tble$subject_id) %>%
-  group_by(subject_id, stay_id) %>%
-  filter(charttime == min(charttime)) %>%
-  ungroup() %>%
-  select(subject_id, stay_id, value) %>%
-  pivot_wider(names_from = itemid, values_from = value) |>
+chartevents_parquet_dataset <- open_dataset("chartevents_pq/chartevents.parquet") |>
   print(width = Inf)
+```
+
+```{r}
+chartevents_filtered_parquet <- chartevents_parquet_dataset %>%
+  mutate(subject_id = as.integer(subject_id)) %>%
+  mutate(itemid = as.double(itemid)) %>%
+  select(subject_id, itemid, charttime, valuenum) %>%
+  filter(itemid %in%
+    c(220045, 220179, 220180, 223761, 220210)) %>%
+  arrange(subject_id, charttime) %>%
+  collect() 
+```
+
+```{r}
+chartevents_filtered_parquet <- as_tibble(chartevents_filtered_parquet) |>
+  print(width = Inf)
+```
+Merge the `stay_id` with the dataset above:
+
+```{r}
+chartevents_merge <- inner_join(
+  chartevents_filtered_parquet,
+  icustays_tble,
+  by = "subject_id"
+) |>
+  filter(charttime >= intime & charttime <= outtime) |>
+  group_by(subject_id, stay_id, itemid) %>%
+  arrange(subject_id, stay_id, charttime) %>%
+  slice_head(n = 1) |>
+  ungroup()
+```
+
+```{r}
+chartevents_d_item <- read_csv("~/mimic/icu/d_items.csv.gz",
+  show_col_types = FALSE
+) |>
+  filter(itemid %in%
+    c(220045, 220179, 220180, 223761, 220210)) |>
+  select(itemid, label) |>
+  print(width = Inf)
+```
+
+```{r}
+chartevents_d <- inner_join(
+  chartevents_merge,
+  chartevents_d_item,
+  by = "itemid"
+) |>
+  collect() |>
+  print(width = Inf)
+```
+
+
+```{r}
+chartevents_tble <- chartevents_d %>%
+  pivot_wider(
+    id_cols = c(subject_id, stay_id),
+    names_from = label,
+    values_from = valuenum,
+    values_fn = list(valuenum = ~ .[1])
+  ) %>%
+  # rename_with(~str_to_lower(.), everything())
+  rename(
+    "heart rate" = "Heart Rate",
+    "non_invasive_blood_pressure_systolic" = "Non Invasive Blood Pressure systolic",
+    "non_invasive_blood_pressure_diastolic" = "Non Invasive Blood Pressure diastolic",
+    "temperature_fahrenheit" = "Temperature Fahrenheit",
+    "respiratory rate" = "Respiratory Rate"
+  )
+```
+
+```{r}
+chartevents_tble
 ```
 
 ## Q7. Putting things together
@@ -543,6 +683,7 @@ Let us create a tibble `mimic_icu_cohort` for all ICU stays, where rows are all 
 The final `mimic_icu_cohort` should have one row per ICU stay and columns for each variable.
 
 ![](mimic_icu_cohort.png)
+
 **Answer:**
 
 ## Q8. Exploratory data analysis (EDA)
