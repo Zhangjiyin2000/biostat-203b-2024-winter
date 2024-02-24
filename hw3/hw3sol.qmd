@@ -65,8 +65,9 @@ sid_adt <- read_csv("~/mimic/hosp/transfers.csv.gz") |>
 ```
 
 ```{r}
-sid_proce <- read_csv("~/mimic/hosp/procedures_icd.csv.gz", 
-                      show_col_types = FALSE) |>
+sid_proce <- read_csv("~/mimic/hosp/procedures_icd.csv.gz",
+  show_col_types = FALSE
+) |>
   filter(subject_id == 10013310) |>
   print(width = Inf)
 ```
@@ -80,7 +81,8 @@ sid_lab <- open_dataset("labevents_pq/labevents.parquet", format = "parquet") |>
 Find the patient's demographic information:
 
 ```{r}
-sid_patients <- read_csv("~/mimic/hosp/patients.csv.gz", show_col_types = FALSE) |>
+sid_patients <- read_csv("~/mimic/hosp/patients.csv.gz", 
+                         show_col_types = FALSE) |>
   filter(subject_id == 10013310) |>
   print(width = Inf)
 ```
@@ -88,25 +90,29 @@ sid_patients <- read_csv("~/mimic/hosp/patients.csv.gz", show_col_types = FALSE)
 Find the race of the patient:
 
 ```{r}
-sid_admission <- read_csv("~/mimic/hosp/admissions.csv.gz", show_col_types = FALSE) |>
+sid_admission <- read_csv("~/mimic/hosp/admissions.csv.gz", 
+                          show_col_types = FALSE) |>
   filter(subject_id == 10013310) |>
   select(race) |>
   print(width = Inf)
 ```
 
 ```{r}
-sid_proce2 <- read_csv("~/mimic/hosp/d_icd_procedures.csv.gz", show_col_types = FALSE) |>
+sid_proce2 <- read_csv("~/mimic/hosp/d_icd_procedures.csv.gz", 
+                       show_col_types = FALSE) |>
   print(width = Inf)
 ```
 
 ```{r}
-sid_dia <- read_csv("~/mimic/hosp/diagnoses_icd.csv.gz", show_col_types = FALSE) |>
+sid_dia <- read_csv("~/mimic/hosp/diagnoses_icd.csv.gz", 
+                    show_col_types = FALSE) |>
   filter(subject_id == 10013310) |>
   print(width = Inf)
 ```
 
 ```{r}
-sid_dia2 <- read_csv("~/mimic/hosp/d_icd_diagnoses.csv.gz", show_col_types = FALSE) |>
+sid_dia2 <- read_csv("~/mimic/hosp/d_icd_diagnoses.csv.gz", 
+                     show_col_types = FALSE) |>
   print(width = Inf)
 ```
 
@@ -115,7 +121,8 @@ Merge the dataset and find the top 3 diagnoses:
 ```{r}
 sid_dia_all <- left_join(sid_dia, sid_dia2, by = "icd_code", "icd_version")
 count(sid_dia_all, long_title, sort = T)
-sid_proce_all <- left_join(sid_proce, sid_proce2, by = "icd_code", "icd_version")
+sid_proce_all <- left_join(sid_proce, sid_proce2, 
+                           by = "icd_code", "icd_version")
 ```
 ```{r}
 sid_proce_all$chartdate <- as.POSIXct(sid_proce$chartdate)
@@ -151,13 +158,14 @@ ggplot() +
     subtitle = "Acute on chronic systolic (congestive) heart failure \nHyperlipidemia, unspecified \nLong term (current) use of insulin \nOther chronic pain"
   ) +
   theme(
-    legend.position = "bottom", 
+    legend.position = "bottom",
     legend.box = "vertical",
-    legend.title = element_text(size = 9)) +
+    legend.title = element_text(size = 9)
+  ) +
   guides(
     shape = guide_legend(nrow = 9, byrow = TRUE)
   ) +
-  scale_shape_manual(values = 1:9) 
+  scale_shape_manual(values = 1:9)
 
 ggsave("10013310_adt_lab_proc.png", width = 10, height = 8)
 ```
@@ -188,7 +196,8 @@ sid_icu <- read_csv("~/mimic/icu/icustays.csv.gz", show_col_types = FALSE) |>
 Find the corresponding itemid for the vitals:
 
 ```{r}
-label_vitals <- read_csv("~/mimic/icu/d_items.csv.gz", show_col_types = FALSE) |>
+label_vitals <- read_csv("~/mimic/icu/d_items.csv.gz", 
+                         show_col_types = FALSE) |>
   filter(abbreviation %in% c("HR", "NBPd", "NBPs", "RR", "Temperature F")) |>
   select(itemid, abbreviation, label) |>
   print(width = Inf)
@@ -218,22 +227,27 @@ time_vitals <- left_join(sid_icu, sid_vitals, by = "stay_id") |>
 
 ```{r}
 time_vitals %>%
-  #mutate(charttime = charttime + lubridate::hours(6)) |>
+  # mutate(charttime = charttime + lubridate::hours(6)) |>
   ggplot(
     aes(
-      x = charttime, 
-      y = valuenum, 
-      color = abbreviation),
-    na.rm = TRUE) +
+      x = charttime,
+      y = valuenum,
+      color = abbreviation
+    ),
+    na.rm = TRUE
+  ) +
   geom_line(
-    linewidth = 0.1) +
+    linewidth = 0.1
+  ) +
   geom_point(
-    size = 0.8) +
+    size = 0.8
+  ) +
   geom_line() +
   facet_grid(
-    abbreviation ~ stay_id, 
-    scales = "free", 
-    space = "free_x") +
+    abbreviation ~ stay_id,
+    scales = "free",
+    space = "free_x"
+  ) +
   labs(
     x = "",
     y = "",
@@ -241,8 +255,8 @@ time_vitals %>%
   ) +
   theme_light() +
   scale_x_datetime(
-    breaks = scales::date_breaks("12 hours"),  
-    labels = scales::date_format("%b %d %H:%M"),  
+    breaks = scales::date_breaks("12 hours"),
+    labels = scales::date_format("%b %d %H:%M"),
   ) +
   theme(
     legend.position = "none",
