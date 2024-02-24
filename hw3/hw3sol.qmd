@@ -497,7 +497,7 @@ labevents_filtered_parquet <- labevents_parquet_dataset %>%
   filter(itemid %in%
     c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931)) %>%
   arrange(subject_id, storetime) %>%
-  collect() 
+  collect()
 ```
 
 ```{r}
@@ -605,7 +605,7 @@ chartevents_filtered_parquet <- chartevents_parquet_dataset %>%
   filter(itemid %in%
     c(220045, 220179, 220180, 223761, 220210)) %>%
   arrange(subject_id, charttime) %>%
-  collect() 
+  collect()
 ```
 
 ```{r}
@@ -687,10 +687,11 @@ The final `mimic_icu_cohort` should have one row per ICU stay and columns for ea
 **Answer:**
 
 ```{r}
-mimic_icu_cohort <- icustays_tble %>% inner_join(
-  admissions_tble,
-  by = c("subject_id", "hadm_id")
-) |>
+mimic_icu_cohort <- icustays_tble %>%
+  inner_join(
+    admissions_tble,
+    by = c("subject_id", "hadm_id")
+  ) |>
   inner_join(
     patients_tble,
     by = "subject_id"
@@ -724,20 +725,305 @@ Summarize the following information about the ICU stay cohort `mimic_icu_cohort`
 
 **Answer:**
 
+**Race:**
 
+Get rid of ones that are "UNABLE TO OBTAIN" and "UNKNOWN" and "PATIENT DECLINED TO ANSWER" and "OTHER":
+
+```{r}
+mimic_icu_cohort %>%
+  filter(
+    race != "UNABLE TO OBTAIN" &
+      race != "UNKNOWN" &
+      race != "PATIENT DECLINED TO ANSWER" &
+      race != "OTHER"
+  ) %>%
+  ggplot(aes(x = los, fill = race)) +
+  geom_histogram(binwidth = 30, position = "dodge", alpha = 0.7) +
+  labs(
+    x = "Length of ICU Stay",
+    y = "Frequency",
+    title = "Histogram of ICU Stay Length by Race"
+  ) +
+  theme(
+    legend.position = "bottom",
+    legend.box = "vertical"
+  )
+```
+```{r}
+# Numerical summaries
+summary_stats <- mimic_icu_cohort %>%
+  group_by(race) %>%
+  summarise(
+    Mean_LOS = mean(los, na.rm = TRUE),
+    Median_LOS = median(los, na.rm = TRUE),
+    SD_LOS = sd(los, na.rm = TRUE)
+  ) %>%
+  arrange(desc(Mean_LOS)) %>%
+  print(summary_stats)
+```
+
+After exploring both graphics and numerical summaries, it is evident that 
+numerical summaries provide more informative insights. The highest mean length 
+of stay is observed among American Indian/Alaska Native individuals, while the 
+lowest mean length of stay is observed among Hispanic/Latino - Mexican 
+individuals.
+
+**insurance**
+
+Check the categories of insurance types:
+
+```{r}
+table(mimic_icu_cohort$insurance)
+```
+
+```{r}
+mimic_icu_cohort %>%
+  ggplot(aes(x = los, fill = insurance)) +
+  geom_histogram(bins = 30, position = "dodge") +
+  labs(
+    x = "Length of ICU Stay",
+    y = "Frequency",
+    title = "Histogram of ICU Stay Length by Insurance"
+  ) +
+  theme(
+    legend.position = "bottom",
+    legend.box = "vertical"
+  )
+```
+The histogram indicates a similar distribution of ICU stay length across all 
+insurance types. For each type, the trend shows a decrease as the length of ICU 
+stay increases.
+
+**marital_status**
+
+Check the categories of marital status:
+
+```{r}
+table(mimic_icu_cohort$marital_status)
+```
+
+
+```{r}
+mimic_icu_cohort %>%
+  ggplot(aes(x = los, fill = marital_status, na.rm = TRUE)) +
+  geom_histogram(bins = 30, position = "dodge") +
+  labs(
+    x = "Length of ICU Stay",
+    y = "Frequency",
+    title = "Histogram of ICU Stay Length by Marital Status"
+  ) +
+  theme(
+    legend.position = "bottom",
+    legend.box = "vertical"
+  )
+
+```
+Based on the histogram, the distribution of ICU stay length is similar across
+all marital statuses. For each status, the trend shows a decrease as the length
+of ICU stay increases.
+
+**gender**
+
+Check the categories:
+
+```{r}
+table(mimic_icu_cohort$gender)
+```
+
+```{r}
+mimic_icu_cohort %>%
+  ggplot(aes(x = los, fill = gender)) +
+  geom_histogram(bins = 30, position = "dodge") +
+  labs(
+    x = "Length of ICU Stay",
+    y = "Frequency",
+    title = "Histogram of ICU Stay Length by Gender"
+  ) +
+  theme(
+    legend.position = "bottom",
+    legend.box = "vertical"
+  )
+
+```
+
+The histogram indicates a similar distribution of ICU stay length across males 
+and females. For each gender, the trend shows a decrease as the length of ICU
+stay increases.
+
+**age at intime**
+
+```{r}
+mimic_icu_cohort %>%
+  ggplot(aes(x = age_intime, y = los)) +
+  geom_point(aes(x = age_intime, y = los) , alpha = 0.7) +
+  geom_smooth(method = "lm", se = FALSE, color = "blue") +  
+  labs(
+    x = "Age at Intime",
+    y = "Length of ICU Stay",
+    title = "Scatterplot of ICU Stay Length vs Age at Intime"
+  ) +
+  theme_minimal()
+
+```
+Therefore, the scatterplot indicates that there is no relationship between age 
+at intime and length of ICU stay. The linear regression line is almost flat,
+indicating no relationship between the two variables.
+
+```{r}
+summary_stats <- mimic_icu_cohort %>%
+  group_by(age_intime) %>%
+  summarise(
+    Mean_LOS = mean(los, na.rm = TRUE),
+    Median_LOS = median(los, na.rm = TRUE),
+    SD_LOS = sd(los, na.rm = TRUE)
+  ) %>%
+  arrange(desc(Mean_LOS)) %>%
+  print(summary_stats)
+
+```
+
+Based on the numerical summaries, the highest mean length of stay is observed 
+among individuals aged 27, while the lowest mean length of stay is observed
+among individuals aged 102.
 
 - Length of ICU stay `los` vs the last available lab measurements before ICU stay
 
 **Answer:**
 
+```{r}
+lab_measurements <- c(
+  "creatinine",
+  "potassium",
+  "sodium",
+  "chloride",
+  "bicarbonate",
+  "hematocrit",
+  "wbc",
+  "glucose"
+)
+```
 
 
-- Length of ICU stay `los` vs the average vital measurements within the first hour of ICU stay
+```{r}
+
+library(purrr)
+walk(lab_measurements, ~{
+  plot_data <- mimic_icu_cohort %>%
+    ggplot(aes(x = !!sym(.x), y = los)) +
+    geom_point(alpha = 0.7) +
+    geom_smooth(method = "lm", se = FALSE, color = "blue") +
+    labs(
+      x = .x,
+      y = "Length of ICU Stay",
+      title = str_c("Scatterplot of ICU Stay Length vs ", .x)
+    ) +
+    theme_minimal()
+
+  print(plot_data)
+})
+```
+
+Based on the scatterplots, there is slightly positive relationship between the 
+last available lab measurements before ICU stay —— `creatinine`, `wbc` and the 
+length of ICU stay, with the linear regression line showing a slight positive 
+slope, which means that the length of ICU stay increases as the value of
+`creatinine` and `wbc` increases. `potassium`, `sodium`, `bicarbonate`, and 
+`glucose` show no relationship with the length of ICU stay, as the linear
+regression lines are almost flat. `chloride` and `hematocrit` show a slightly
+negative relationship with the length of ICU stay, as the linear regression lines
+show a slight negative slope, which means that the length of ICU stay decreases
+as the value of `chloride` and `hematocrit` increases.
+
+- Length of ICU stay `los` vs the first vital measurements within the ICU stay
 
 **Answer:**
+
+```{r}
+vital_measurements <- c(
+  "heart rate",
+  "non_invasive_blood_pressure_systolic",
+  "non_invasive_blood_pressure_diastolic",
+  "temperature_fahrenheit",
+  "respiratory rate"
+)
+```
+
+```{r}
+walk(vital_measurements, ~{
+  plot_data <- mimic_icu_cohort %>%
+    ggplot(aes(x = !!sym(.x), y = los)) +
+    geom_point(alpha = 0.7) +
+    geom_smooth(method = "lm", se = FALSE, color = "blue") +
+    labs(
+      x = .x,
+      y = "Length of ICU Stay",
+      title = str_c("Scatterplot of ICU Stay Length vs ", .x)
+    ) +
+    theme_minimal()
+
+  print(plot_data)
+})
+
+```
+Based on the scatterplots, there is no relationship between the first vital
+measurements within the ICU stay -- none invasive blood pressure diastolic and 
+the length of ICU stay. The linear regression line is almost flat, indicating
+no relationship between the two variables. `heart rate`, `temperature` and 
+`respiratory rate` show a slightly positive relationship with the length of ICU
+stay, as the linear regression lines show a slight positive slope, which means
+that the length of ICU stay increases as the value of `heart rate`, `temperature`
+and `respiratory rate` increases. `non invasive blood pressure systolic` shows a
+slightly negative relationship with the length of ICU stay, as the linear
+regression line shows a slight negative slope, which means that the length of
+ICU stay decreases as the value of `non invasive blood pressure systolic` 
+increases.
 
 
 
 - Length of ICU stay `los` vs first ICU unit
 
 **Answer:**
+
+```{r}
+mimic_icu_cohort %>%
+  ggplot(aes(x = first_careunit, y = los)) +
+  geom_boxplot() +
+  labs(
+    x = "First ICU Unit",
+    y = "Length of ICU Stay",
+    title = "Boxplot of ICU Stay Length by First ICU Unit"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, size = 6))
+
+
+```
+
+Based on the boxplot, the distribution of ICU stay length is similar across all
+first ICU units. The average of ICU stay length is similar across all first ICU
+units, with the highest average observed in the Neuro SICU. 
+
+The boxplot is not very informative, so I will use numerical summary, which 
+again shows that the average length of stay is similar across all first ICU
+units. The highest average length of stay is observed in the Neuro SICU, while
+the lowest average length of stay is observed in the Cardiac SICU.
+
+```{r}
+summary_stats <- mimic_icu_cohort %>%
+  group_by(first_careunit) %>%
+  summarise(
+    Mean_LOS = mean(los, na.rm = TRUE),
+    Median_LOS = median(los, na.rm = TRUE),
+    SD_LOS = sd(los, na.rm = TRUE)
+  ) %>%
+  arrange(desc(Mean_LOS)) %>%
+  print(summary_stats)
+
+```
+
+
+
+
+
+
+
