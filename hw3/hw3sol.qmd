@@ -157,7 +157,9 @@ ggplot() +
   guides(
     shape = guide_legend(nrow = 9, byrow = TRUE)
   ) +
-  scale_shape_manual(values = 1:9)
+  scale_shape_manual(values = 1:9) 
+
+ggsave("10013310_adt_lab_proc.png", width = 10, height = 8)
 ```
 
 
