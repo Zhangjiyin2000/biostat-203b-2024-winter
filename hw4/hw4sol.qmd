@@ -1,7 +1,7 @@
 ---
 title: "Biostat 203B Homework 4"
 subtitle: "Due Mar 8 @ 11:59PM"
-author: "Your Name and UID"
+author: "Jiyin (Jenny) Zhang, UID:606331859"
 format:
   html:
     theme: cosmo
