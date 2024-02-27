@@ -86,8 +86,10 @@ admissions_tble <- tbl(con_bq, "admissions") |>
 
 Connect to the `patients` table.
 ```{r}
-# # TODO
-# patients_tble <-
+# full patients table
+patients_tble <- tbl(con_bq, "patients") |>
+  # show_query() |>
+  print(width = Inf)
 
 ```
 
