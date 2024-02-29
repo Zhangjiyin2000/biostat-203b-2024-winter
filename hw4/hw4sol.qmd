@@ -65,6 +65,9 @@ dbListTables(con_bq)
 ### Q1.2 `icustays` data
 
 Connect to the `icustays` table.
+
+**Answer:**
+
 ```{r}
 # full ICU stays table
 icustays_tble <- tbl(con_bq, "icustays") |>
@@ -75,6 +78,9 @@ icustays_tble <- tbl(con_bq, "icustays") |>
 ### Q1.3 `admissions` data
 
 Connect to the `admissions` table.
+
+**Answer:**
+
 ```{r}
 # full admissions table
 admissions_tble <- tbl(con_bq, "admissions") |>
@@ -85,6 +91,9 @@ admissions_tble <- tbl(con_bq, "admissions") |>
 ### Q1.4 `patients` data
 
 Connect to the `patients` table.
+
+**Answer:**
+
 ```{r}
 # full patients table
 patients_tble <- tbl(con_bq, "patients") |>
@@ -96,6 +105,8 @@ patients_tble <- tbl(con_bq, "patients") |>
 ### Q1.5 `labevents` data
 
 Connect to the `labevents` table and retrieve a subset that only contain subjects who appear in `icustays_tble` and the lab items listed in HW3. Only keep the last lab measurements before the ICU stay and pivot lab items to become variables/columns. Write all steps in _one_ chain of pipes.
+
+**Answer:**
 
 ```{r}
 labevents_tble <- tbl(con_bq, "labevents") |>
@@ -118,7 +129,19 @@ labevents_tble <- tbl(con_bq, "labevents") |>
     names_from = label,
     values_from = valuenum
   ) |>
-  #arrange(subject_id, stay_id) |>
+  arrange(subject_id, stay_id) |>
+  rename(
+    "wbc" = "White Blood Cells",
+    "bicarbonate" = "Bicarbonate",
+    "chloride" = "Chloride",
+    "creatinine" = "Creatinine",
+    "glucose" = "Glucose",
+    "potassium" = "Potassium",
+    "sodium" = "Sodium",
+    "hematocrit" = "Hematocrit"
+  ) |>
+  select(subject_id, stay_id, "bicarbonate", "chloride", "creatinine", 
+         "glucose", "potassium", "sodium", "hematocrit", "wbc") |>
   print(width = Inf)
 ```
 
@@ -126,11 +149,7 @@ labevents_tble <- tbl(con_bq, "labevents") |>
 
 Connect to `chartevents` table and retrieve a subset that only contain subjects who appear in `icustays_tble` and the chart events listed in HW3. Only keep the first chart events during ICU stay and pivot chart events to become variables/columns. Write all steps in _one_ chain of pipes.
 
-```{r}
-# # TODO
-# chartevents_tble <- 
-```
-
+**Answer:**
 
 ```{r}
 chartevents_tble <- tbl(con_bq, "chartevents") |>
@@ -154,6 +173,16 @@ chartevents_tble <- tbl(con_bq, "chartevents") |>
     values_from = valuenum
   ) |>
   rename(stay_id = stay_id_x) |>
+  arrange(subject_id, stay_id) |>
+  rename(
+    "heart_rate" = "Heart Rate",
+    "non_invasive_blood_pressure_systolic" = "Non Invasive Blood Pressure systolic",
+    "non_invasive_blood_pressure_diastolic" = "Non Invasive Blood Pressure diastolic",
+    "temperature_fahrenheit" = "Temperature Fahrenheit",
+    "respiratory rate" = "Respiratory Rate"
+  ) |>
+  # change the order of the columns
+  select(subject_id, stay_id, "heart_rate", "non_invasive_blood_pressure_systolic", "non_invasive_blood_pressure_diastolic", "respiratory rate", "temperature_fahrenheit") |>
   print(width = Inf)
 ```
 
