@@ -141,22 +141,21 @@ chartevents_tble <- tbl(con_bq, "chartevents") |>
   filter(itemid %in%
     c(220045, 220179, 220180, 223761, 220210)) %>%
   filter(charttime >= intime & charttime <= outtime) |>
-  group_by(subject_id, stay_id, itemid) %>%
-  slice_max(n = 1, order_by = charttime) %>%
+  group_by(subject_id, stay_id_x, itemid) %>%
+  slice_min(n = 1, order_by = charttime) %>%
   ungroup() |>
   left_join(
     tbl(con_bq, "d_items"),
     by = "itemid"
   ) |>
   pivot_wider(
-    id_cols = c(subject_id, stay_id),
+    id_cols = c(subject_id, stay_id_x),
     names_from = label,
     values_from = valuenum
   ) |>
-  #arrange(subject_id, stay_id) |>
+  rename(stay_id = stay_id_x) |>
   print(width = Inf)
 ```
-
 
 ### Q1.7 Put things together
 
