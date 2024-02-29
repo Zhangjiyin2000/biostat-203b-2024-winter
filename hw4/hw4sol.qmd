@@ -96,18 +96,67 @@ patients_tble <- tbl(con_bq, "patients") |>
 ### Q1.5 `labevents` data
 
 Connect to the `labevents` table and retrieve a subset that only contain subjects who appear in `icustays_tble` and the lab items listed in HW3. Only keep the last lab measurements before the ICU stay and pivot lab items to become variables/columns. Write all steps in _one_ chain of pipes.
+
 ```{r}
-# # TODO
-# labevents_tble <- 
+labevents_tble <- tbl(con_bq, "labevents") |>
+  right_join(
+  icustays_tble,
+  by = "subject_id"
+) |>
+  filter(itemid %in%
+    c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931)) |>
+  filter(storetime < intime) |>
+  group_by(subject_id, stay_id, itemid) %>%
+  slice_max(n = 1, order_by = storetime) %>%
+  ungroup() |>
+  left_join(
+    tbl(con_bq, "d_labitems"),
+    by = "itemid"
+  ) |>
+  pivot_wider(
+    id_cols = c(subject_id, stay_id),
+    names_from = label,
+    values_from = valuenum
+  ) |>
+  #arrange(subject_id, stay_id) |>
+  print(width = Inf)
 ```
 
 ### Q1.6 `chartevents` data
 
 Connect to `chartevents` table and retrieve a subset that only contain subjects who appear in `icustays_tble` and the chart events listed in HW3. Only keep the first chart events during ICU stay and pivot chart events to become variables/columns. Write all steps in _one_ chain of pipes.
+
 ```{r}
 # # TODO
 # chartevents_tble <- 
 ```
+
+
+```{r}
+chartevents_tble <- tbl(con_bq, "chartevents") |>
+  right_join(
+  icustays_tble,
+  by = "subject_id"
+) |>
+  filter(itemid %in%
+    c(220045, 220179, 220180, 223761, 220210)) %>%
+  filter(charttime >= intime & charttime <= outtime) |>
+  group_by(subject_id, stay_id, itemid) %>%
+  slice_max(n = 1, order_by = charttime) %>%
+  ungroup() |>
+  left_join(
+    tbl(con_bq, "d_items"),
+    by = "itemid"
+  ) |>
+  pivot_wider(
+    id_cols = c(subject_id, stay_id),
+    names_from = label,
+    values_from = valuenum
+  ) |>
+  #arrange(subject_id, stay_id) |>
+  print(width = Inf)
+```
+
 
 ### Q1.7 Put things together
 
