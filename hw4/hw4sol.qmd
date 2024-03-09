@@ -12,11 +12,8 @@ format:
     toc-location: left
     code-fold: false
 execute:
-<<<<<<< HEAD
-  eval: false
-=======
   eval: true
->>>>>>> develop
+
 ---
 
 Display machine information:
@@ -30,11 +27,6 @@ memuse::Sys.meminfo()
 
 Load database libraries and the tidyverse frontend:
 ```{r}
-<<<<<<< HEAD
-=======
-# install.packages("forcats")
-library(forcats)
->>>>>>> develop
 library(bigrquery)
 library(dbplyr)
 library(DBI)
@@ -51,11 +43,7 @@ Below is an outline of steps. In this homework, we exclusively work with the Big
 
 Authenticate with BigQuery using the service account token. Please place the service account token (shared via BruinLearn) in the working directory (same folder as your qmd file). Do **not** add this token to your git repository.
 ```{r}
-<<<<<<< HEAD
-# path to the service account token 
-=======
 # path to the service account token
->>>>>>> develop
 satoken <- "biostat-203b-2024-winter-313290ce47a6.json"
 # BigQuery authentication using service account
 bq_auth(path = satoken)
@@ -64,17 +52,10 @@ Connect to BigQuery database `mimic4_v2_2` in GCP (Google Cloud Platform), using
 ```{r}
 # connect to the BigQuery database `biostat-203b-2024-winter.mimic4_v2_2`
 con_bq <- dbConnect(
-<<<<<<< HEAD
     bigrquery::bigquery(),
     project = "biostat-203b-2024-winter",
     dataset = "mimic4_v2_2",
     billing = "biostat-203b-2024-winter"
-=======
-  bigrquery::bigquery(),
-  project = "biostat-203b-2024-winter",
-  dataset = "mimic4_v2_2",
-  billing = "biostat-203b-2024-winter"
->>>>>>> develop
 )
 con_bq
 ```
@@ -91,10 +72,7 @@ Connect to the `icustays` table.
 ```{r}
 # full ICU stays table
 icustays_tble <- tbl(con_bq, "icustays") |>
-<<<<<<< HEAD
-=======
   arrange(subject_id, stay_id) |>
->>>>>>> develop
   # show_query() |>
   print(width = Inf)
 ```
@@ -108,10 +86,7 @@ Connect to the `admissions` table.
 ```{r}
 # full admissions table
 admissions_tble <- tbl(con_bq, "admissions") |>
-<<<<<<< HEAD
-=======
   arrange(subject_id, hadm_id) |>
->>>>>>> develop
   # show_query() |>
   print(width = Inf)
 ```
@@ -125,15 +100,11 @@ Connect to the `patients` table.
 ```{r}
 # full patients table
 patients_tble <- tbl(con_bq, "patients") |>
-<<<<<<< HEAD
-  # show_query() |>
-  print(width = Inf)
 
-=======
   arrange(subject_id) |>
   # show_query() |>
   print(width = Inf)
->>>>>>> develop
+
 ```
 
 ### Q1.5 `labevents` data
@@ -145,15 +116,9 @@ Connect to the `labevents` table and retrieve a subset that only contain subject
 ```{r}
 labevents_tble <- tbl(con_bq, "labevents") |>
   right_join(
-<<<<<<< HEAD
   icustays_tble,
   by = "subject_id"
 ) |>
-=======
-    icustays_tble,
-    by = "subject_id"
-  ) |>
->>>>>>> develop
   filter(itemid %in%
     c(50912, 50971, 50983, 50902, 50882, 51221, 51301, 50931)) |>
   filter(storetime < intime) |>
@@ -180,15 +145,10 @@ labevents_tble <- tbl(con_bq, "labevents") |>
     "sodium" = "Sodium",
     "hematocrit" = "Hematocrit"
   ) |>
-<<<<<<< HEAD
-  select(subject_id, stay_id, "bicarbonate", "chloride", "creatinine", 
-         "glucose", "potassium", "sodium", "hematocrit", "wbc") |>
-=======
   select(
     subject_id, stay_id, "bicarbonate", "chloride", "creatinine",
     "glucose", "potassium", "sodium", "hematocrit", "wbc"
   ) |>
->>>>>>> develop
   print(width = Inf)
 ```
 
@@ -201,15 +161,9 @@ Connect to `chartevents` table and retrieve a subset that only contain subjects 
 ```{r}
 chartevents_tble <- tbl(con_bq, "chartevents") |>
   right_join(
-<<<<<<< HEAD
-  icustays_tble,
-  by = "subject_id"
-) |>
-=======
     icustays_tble,
     by = "subject_id"
   ) |>
->>>>>>> develop
   filter(itemid %in%
     c(220045, 220179, 220180, 223761, 220210)) %>%
   filter(charttime >= intime & charttime <= outtime) |>
@@ -229,19 +183,8 @@ chartevents_tble <- tbl(con_bq, "chartevents") |>
   arrange(subject_id, stay_id) |>
   rename(
     "heart_rate" = "Heart Rate",
-<<<<<<< HEAD
     "non_invasive_blood_pressure_systolic" = "Non Invasive Blood Pressure systolic",
     "non_invasive_blood_pressure_diastolic" = "Non Invasive Blood Pressure diastolic",
-    "temperature_fahrenheit" = "Temperature Fahrenheit",
-    "respiratory rate" = "Respiratory Rate"
-  ) |>
-  # change the order of the columns
-  select(subject_id, stay_id, "heart_rate", "non_invasive_blood_pressure_systolic", "non_invasive_blood_pressure_diastolic", "respiratory rate", "temperature_fahrenheit") |>
-=======
-    "non_invasive_blood_pressure_systolic" = 
-      "Non Invasive Blood Pressure systolic",
-    "non_invasive_blood_pressure_diastolic" = 
-      "Non Invasive Blood Pressure diastolic",
     "temperature_fahrenheit" = "Temperature Fahrenheit",
     "respiratory_rate" = "Respiratory Rate"
   ) |>
@@ -250,7 +193,6 @@ chartevents_tble <- tbl(con_bq, "chartevents") |>
          "non_invasive_blood_pressure_systolic", 
          "non_invasive_blood_pressure_diastolic", "respiratory_rate", 
          "temperature_fahrenheit") |>
->>>>>>> develop
   print(width = Inf)
 ```
 
@@ -259,10 +201,8 @@ chartevents_tble <- tbl(con_bq, "chartevents") |>
 This step is similar to Q7 of HW3. Using _one_ chain of pipes `|>` to perform following data wrangling steps: (i) start with the `icustays_tble`, (ii) merge in admissions and patients tables, (iii) keep adults only (age at ICU intime >= 18), (iv) merge in the labevents and chartevents tables, (v) `collect` the tibble.
 
 ```{r}
-<<<<<<< HEAD
 # # TODO
 # mimic_icu_cohort <- 
-=======
 mimic_icu_cohort <- icustays_tble |>
   inner_join(admissions_tble, by = c("subject_id", "hadm_id")) |>
   inner_join(patients_tble, by = "subject_id") |>
@@ -285,7 +225,6 @@ mimic_icu_cohort <- icustays_tble |>
   ) |>
   collect() |>
   print(width = Inf)
->>>>>>> develop
 ```
 
 ### Q1.8 Preprocessing
@@ -296,11 +235,11 @@ Hint: Below is a numerical summary of my tibble after preprocessing:
 
 <iframe width=95% height="500" src="./mimic_icu_cohort_gtsummary.html"></iframe>
 
-<<<<<<< HEAD
+
 ### Q1.9 Save the final tibble
 
 Save the final tibble to an R data file `mimic_icu_cohort.rds` in the `mimiciv_shiny` folder.
-=======
+
 **Answer:**
 
 ```{r}
@@ -343,47 +282,27 @@ mimic_icu_cohort_tbl |>
 
 Save the final tibble to an R data file `mimic_icu_cohort.rds` in the `mimiciv_shiny` folder.
 
->>>>>>> develop
+
 ```{r}
 # make a directory mimiciv_shiny
 if (!dir.exists("mimiciv_shiny")) {
   dir.create("mimiciv_shiny")
 }
 # save the final tibble
-<<<<<<< HEAD
 mimic_icu_cohort |>
   write_rds("mimiciv_shiny/mimic_icu_cohort.rds", compress = "gz")
 ```
 Close database connection and clear workspace.
-=======
-mimic_icu_cohort_tbl |>
-  write_rds("mimiciv_shiny/mimic_icu_cohort.rds", compress = "gz")
-```
-
-Close database connection and clear workspace.
-
->>>>>>> develop
 ```{r}
 if (exists("con_bq")) {
   dbDisconnect(con_bq)
 }
 rm(list = ls())
 ```
-<<<<<<< HEAD
-=======
 
->>>>>>> develop
 Although it is not a good practice to add big data files to git, for grading purpose, please add `mimic_icu_cohort.rds` to your git repository.
 
 ## Q2. Shiny app
 
 Develop a Shiny app for exploring the ICU cohort data created in Q1. The app should reside in the `mimiciv_shiny` folder. The app should contains at least two tabs. One tab provides easy access to the graphical and numerical summaries of variables (demographics, lab measurements, vitals) in the ICU cohort. The other allows user to choose a specific patient in the cohort and display the patient's ADT and ICU stay information as we did in Q1 of HW3.
-<<<<<<< HEAD
-=======
 
-
-
-
-
-
->>>>>>> develop

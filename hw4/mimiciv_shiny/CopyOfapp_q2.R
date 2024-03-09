@@ -1,12 +1,31 @@
-library(ggplot2)
-# install.packages("devtools")
-library(devtools)
-# Install dqshiny from GitHub
-devtools::install_github("daqana/dqshiny")
+
 library(shiny)
+library(readr)
+library(bigrquery)
+library(dbplyr)
+library(DBI)
+library(gt)
+library(gtsummary)
+library(tidyverse)
+library(forcats)
+library(ggplot2)
+
+# path to the service account token
+satoken <- "biostat-203b-2024-winter-313290ce47a6.json"
+# BigQuery authentication using service account
+bq_auth(path = satoken)
+
+# connect to the BigQuery database `biostat-203b-2024-winter.mimic4_v2_2`
+con_bq <- dbConnect(
+  bigrquery::bigquery(),
+  project = "biostat-203b-2024-winter",
+  dataset = "mimic4_v2_2",
+  billing = "biostat-203b-2024-winter"
+)
+con_bq
 
 # read the dataset
-dataset <- readRDS("mimiciv_shiny/mimic_icu_cohort.rds")
+dataset <- readRDS("mimic_icu_cohort.rds")
 longData <- dataset %>%
   pivot_longer(
     cols = c(
@@ -112,7 +131,7 @@ ui <- fluidPage(
             # Input:  ----
             # make a number input box into the UI.
             tags$p("Select a patient."),
-            selectInput("subject_id", 
+            selectInput("patient_id", 
                            label = "Patient ID", 
                            choices = sample(unique(dataset$subject_id), 5)
             )
@@ -129,8 +148,15 @@ ui <- fluidPage(
 server <- function(input, output, session) {
   
   # read the dataset
-  dataset <- readRDS("mimiciv_shiny/mimic_icu_cohort.rds")
-  
+  dataset <- readRDS("mimic_icu_cohort.rds")
+  get_first_value <- function(data, column_name,
+                              default_value = "Not Available") {
+    if (!is.null(data) && nrow(data) > 0 && column_name %in% names(data)) {
+      return(data[[column_name]][1])
+    } else {
+      return(default_value)
+    }
+  }
   # Plot for the first tab ----------------------Patient characteristics
   output$plot1 <- renderPlot({
     if (input$var == "last_careunit") {
@@ -280,80 +306,89 @@ server <- function(input, output, session) {
   
   # Plot for the second tab --- Patient's ADT and ICU stay infomation
   output$plot2 <- renderPlot({
-
-      # produce the sub-dataset we need to plot
-      
-      sid_adt <- tbl(con_bq, "transfers") %>%
-        filter(subject_id == as.numeric(input$subject_id) )%>%
-        filter(eventtype != "discharge") |>
-        mutate(
-          linewidth = ifelse(
-            str_detect(careunit, "(ICU|CCU)"), 3, 1
-          )
-        ) 
-      
-      sid_proce <- tbl(con_bq, "procedures_icd") %>%
-        filter(subject_id == as.numeric(input$subject_id)) 
-      
-      sid_lab <- labevents_tble %>%
-        filter(subject_id == as.numeric(input$subject_id)) %>%
-        collect()
-      
-      sid_patients <- patients_tble %>%
-        filter(subject_id == as.numeric(input$subject_id))
-      
-      sid_proce2 <- tbl(con_bq, "d_icd_procedures") %>%
-        filter(subject_id == as.numeric(input$subject_id)) 
-      
-      sid_dia <- tbl(con_bq, "diagnoses_icd") %>% 
-        filter(subject_id == as.numeric(input$subject_id))
-      
-      sid_dia2 <- tbl(con_bq, "d_icd_diagnoses") %>%
-        filter(subject_id == as.numeric(input$subject_id))
-      
-      # merge the dataset to plot
-      sid_dia_all <- left_join(sid_dia, sid_dia2, by = "icd_code", "icd_version")
-      count(sid_dia_all, long_title, sort = T)
-      sid_proce_all <- left_join(sid_proce, sid_proce2, 
-                                 by = "icd_code", "icd_version")
-      sid_proce_all$chartdate <- as.POSIXct(sid_proce$chartdate)
-      
-    # Plot the patient's information ------------------------------
+    sid <- as.numeric(input$"patient_id")
+    
+    sid_info <- tbl(con_bq, "patients") |>
+      filter(subject_id == sid)
+    
+    sid_adt <- tbl(con_bq, "transfers") |>
+      filter(subject_id == sid) |>
+      collect()
+    
+    sid_adm <- tbl(con_bq, "admissions") |>
+      filter(subject_id == sid) |>
+      collect()
+    
+    sid_lab <- tbl(con_bq, "labevents") |>
+      filter(subject_id == sid) |>
+      collect()
+    
+    sid_proc <- tbl(con_bq, "procedures_icd") |>
+      filter(subject_id == sid) |>
+      left_join(tbl(con_bq, "d_icd_procedures"),
+                by = c("icd_code", "icd_version")
+      )
+    
+    # Extract the top 3 diagnoses
+    top_dia <- tbl(con_bq, "diagnoses_icd") |>
+      filter(subject_id == sid, seq_num <= 3) |>
+      select(seq_num, icd_code) |>
+      arrange(seq_num) |>
+      distinct() |>
+      head(n = 3) |>
+      pull(icd_code)
+    
+    # Extract the corresponding long titles for the top 3 diagnosis codes
+    top_3_title <- tbl(con_bq, "d_icd_diagnoses") |>
+      filter(icd_code %in% top_dia) |>
+      pull(long_title)
+    
     ggplot() +
-      geom_point(
-        data = sid_proce_all,
-        aes(x = chartdate, y = "Procedure", shape = long_title)
-      ) +
-      geom_point(
-        data = sid_lab,
-        aes(x = charttime, y = "Lab"), shape = 3
-      ) +
       geom_segment(
-        data = sid_adt,
-        aes(x = intime, xend = outtime, y = "ADT", yend = "ADT", color = careunit),
-        linewidth = sid_adt$linewidth
+        data = sid_adt %>% filter(eventtype != "discharge"),
+        mapping = aes(
+          x = intime,
+          xend = outtime,
+          y = "ADT",
+          yend = "ADT",
+          color = careunit,
+          size = as.numeric(str_detect(careunit, "(ICU|CCU)"))
+        )
       ) +
-      scale_y_discrete(limits = c("Procedure", "Lab", "ADT")) +
+      geom_point(
+        data = sid_lab %>% distinct(charttime, .keep_all = TRUE),
+        mapping = aes(x = charttime, y = "Lab"),
+        shape = "+",
+        size = 5
+      ) +
+      geom_jitter(
+        data = sid_proc,
+        mapping = aes(
+          x = chartdate + hours(12),
+          y = "Procedure",
+          shape = str_sub(long_title, 1, 25)
+        ),
+        size = 3,
+        height = 0
+      ) +
       labs(
+        title = str_c(
+          "Patient ", sid, " - ",
+          get_first_value(filter(dataset, subject_id == sid), "gender"), " - ",
+          get_first_value(filter(dataset, subject_id == sid), "age_at_intime"),
+          " years old, ",
+          str_to_lower(get_first_value(filter(sid_adm, subject_id == sid), "race"))
+        ),
+        subtitle = str_c(top_3_title, collapse = "\n"),
         x = "Calendar Time",
         y = "",
         color = "Care Unit",
-        shape = "Procedure",
-        title = paste(
-          "Patient ", input$patient_id, "F, ",
-          "70 ", "years old, ", "Black/African"
-        ),
-        subtitle = "Acute on chronic systolic (congestive) heart failure \nHyperlipidemia, unspecified \nLong term (current) use of insulin \nOther chronic pain"
+        shape = "Procedure"
       ) +
-      theme(
-        legend.position = "bottom",
-        legend.box = "vertical",
-        legend.title = element_text(size = 9)
-      ) +
-      guides(
-        shape = guide_legend(nrow = 9, byrow = TRUE)
-      ) +
-      scale_shape_manual(values = 1:9)
+      guides(size = "none") +
+      scale_y_discrete(limits = rev) +
+      theme_light() +
+      theme(legend.position = "bottom", legend.box = "vertical")
   })
   
  
