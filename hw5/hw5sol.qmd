@@ -612,5 +612,30 @@ final_fit |>
   collect_metrics()
 ```
  
+ **Model stacking:**
+ 
+ Build the stacked ensemble.
+ 
+```{r}
+mimic_model_st <- 
+  # initialize the stack
+  stacks() |>
+  # add candidate members
+  # add_candidates(logit_fit) |>
+  add_candidates(rf_fit) |>
+  add_candidates(gb_fit) |>
+  # determine how to combine their predictions
+  blend_predictions(
+    penalty = 10^(-6:2),
+    metrics = c("roc_auc")
+    ) |>
+  # fit the candidates with nonzero stacking coefficients
+  fit_members()
+```
+ 
+```{r}
+mimic_model_st
+```
+ 
  
  4. Compare model classification performance on the test set. Report both the area under ROC curve and accuracy for each machine learning algorithm and the model stacking. Interpret the results. What are the most important features in predicting long ICU stays? How do the models compare in terms of performance and interpretability?
