@@ -23,6 +23,8 @@ Using the ICU cohort `mimiciv_icu_cohort.rds` you built in Homework 4, develop a
 library(dplyr) # for use of arrange()
 library(tidymodels) # for use of initial_split()
 library(gtsummary) # for use of tbl_summary()
+library(xgboost)
+library(stacks)
 ```
 
 # 1. Data preprocessing and feature engineering.
@@ -245,7 +247,7 @@ Fit cross-validation.
     resamples = folds,
     grid = param_grid,
     metrics = metric_set(roc_auc, accuracy),
-    control = control_grid(verbose = TRUE)
+    control = control_stack_grid()
     )) |>
   #show_notes(.Last.tune.result) |>
   system.time()
@@ -399,9 +401,216 @@ rf_fit <- rf_wf |>
   tune_grid(
     resamples = folds,
     grid = param_grid,
-    metrics = metric_set(roc_auc, accuracy)
+    metrics = metric_set(roc_auc, accuracy),
+    control = control_stack_grid()
     )
 rf_fit
 ```
 
-# 4. Compare model classification performance on the test set. Report both the area under ROC curve and accuracy for each machine learning algorithm and the model stacking. Interpret the results. What are the most important features in predicting long ICU stays? How do the models compare in terms of performance and interpretability?
+Visualize CV results:
+
+```{r}
+rf_fit |>
+  collect_metrics() |>
+  print(width = Inf) |>
+  filter(.metric == "roc_auc") |>
+  ggplot(mapping = aes(x = trees, y = mean, color = factor(mtry))) +
+  geom_point() + 
+  # geom_line() + 
+  labs(x = "Number of Trees", y = "CV AUC")
+```
+
+Show the top 5 models.
+
+```{r}
+rf_fit |>
+  show_best("roc_auc")
+```
+ 
+Select the best model.
+
+```{r}
+best_rf <- rf_fit |>
+  select_best("roc_auc")
+best_rf
+```
+ 
+**Finalize the model:**
+
+Final workflow.
+
+```{r}
+final_wf <- rf_wf |>
+  finalize_workflow(best_rf)
+final_wf
+```
+ 
+Fit the whole training set, then predict the test cases.
+
+```{r}
+final_fit <- 
+  final_wf |>
+  last_fit(data_split)
+final_fit
+```
+ 
+Test metrics.
+
+```{r}
+final_fit |> 
+  collect_metrics()
+```
+ 
+**Boosting:**
+
+**Recipe:**
+
+```{r}
+gb_recipe <- 
+  recipe(
+    los_long ~ ., 
+    data = mimic_other
+  ) |>
+  
+  # mean imputation for numeric variables
+  step_impute_mean(bicarbonate) |>
+  step_impute_mean(chloride) |>
+  step_impute_mean(creatinine) |>
+  step_impute_mean(glucose) |>
+  step_impute_mean(potassium) |>
+  step_impute_mean(sodium) |>
+  step_impute_mean(hematocrit) |>
+  step_impute_mean(wbc) |>
+  step_impute_mean(heart_rate) |>
+  step_impute_mean(non_invasive_blood_pressure_systolic) |>
+  step_impute_mean(temperature_fahrenheit) |>
+  step_impute_mean(non_invasive_blood_pressure_diastolic) |>
+  step_impute_mean(respiratory_rate) |>
+  
+  # mode imputation for categorical variables
+  step_impute_mode(marital_status) |>
+  
+  # create traditional dummy variables (necessary for xgboost)
+  step_dummy(all_nominal_predictors()) |>
+  
+  # zero-variance filter
+  step_zv(all_numeric_predictors()) |> 
+  
+  # estimate the means and standard deviations
+  prep(training = mimic_other, retain = TRUE) |>
+  
+  print()
+
+```
+ 
+**Model:**
+
+```{r}
+gb_mod <- 
+  boost_tree(
+    mode = "classification",
+    trees = 1000, 
+    tree_depth = tune(),
+    learn_rate = tune()
+  ) |> 
+  set_engine("xgboost")
+gb_mod
+```
+ **Workflow:**
+ 
+```{r}
+gb_wf <- workflow() |>
+  add_recipe(gb_recipe) |>
+  add_model(gb_mod)
+gb_wf
+```
+ 
+**Tuning grid:**
+
+```{r}
+param_grid <- grid_regular(
+  tree_depth(range = c(1L, 3L)),
+  learn_rate(range = c(-5, 2), trans = log10_trans()),
+  levels = c(3, 10)
+  )
+param_grid
+```
+ 
+**Cross-validation:**
+
+```{r}
+set.seed(203)
+
+folds <- vfold_cv(mimic_other, v = 5)
+folds
+```
+ 
+Fit cross-validation.
+
+```{r}
+gb_fit <- gb_wf |>
+  tune_grid(
+    resamples = folds,
+    grid = param_grid,
+    metrics = metric_set(roc_auc, accuracy),
+    control = control_stack_grid()
+    )
+gb_fit
+```
+ 
+Visualize CV results:
+
+```{r}
+gb_fit |>
+  collect_metrics() |>
+  print(width = Inf) |>
+  filter(.metric == "roc_auc") |>
+  ggplot(mapping = aes(x = learn_rate, y = mean, color = factor(tree_depth))) +
+  geom_point() +
+  labs(x = "Learning Rate", y = "CV AUC") +
+  scale_x_log10()
+```
+ 
+Show the top 5 models.
+
+```{r}
+gb_fit |>
+  show_best("roc_auc")
+```
+ 
+Select the best model.
+
+```{r}
+best_gb <- gb_fit |>
+  select_best("roc_auc")
+best_gb
+```
+ 
+**Finalize the model:**
+
+Final workflow.
+
+```{r}
+final_wf <- gb_wf |>
+  finalize_workflow(best_gb)
+final_wf
+```
+ 
+Fit the whole training set, then predict the test cases.
+
+```{r}
+final_fit <- 
+  final_wf |>
+  last_fit(data_split)
+final_fit
+```
+ 
+Test metrics.
+
+```{r}
+final_fit |> 
+  collect_metrics()
+```
+ 
+ 
+ 4. Compare model classification performance on the test set. Report both the area under ROC curve and accuracy for each machine learning algorithm and the model stacking. Interpret the results. What are the most important features in predicting long ICU stays? How do the models compare in terms of performance and interpretability?
