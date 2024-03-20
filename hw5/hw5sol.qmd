@@ -20,11 +20,13 @@ Using the ICU cohort `mimiciv_icu_cohort.rds` you built in Homework 4, develop a
 # 0. Load necessary libraries.
 
 ```{r}
+rm(list = ls())
 library(dplyr) # for use of arrange()
 library(tidymodels) # for use of initial_split()
 library(gtsummary) # for use of tbl_summary()
 library(xgboost)
 library(stacks)
+library(vip)
 ```
 
 # 1. Data preprocessing and feature engineering.
@@ -223,7 +225,7 @@ logit_wf <- workflow() |>
 **Tuning grid:**
 
 ```{r}
-param_grid <- grid_regular(
+logit_grid <- grid_regular(
   penalty(range = c(-6, 3)), 
   mixture(),
   levels = c(100, 5)
@@ -245,7 +247,7 @@ Fit cross-validation.
 (logit_fit <- logit_wf |>
   tune_grid(
     resamples = folds,
-    grid = param_grid,
+    grid = logit_grid,
     metrics = metric_set(roc_auc, accuracy),
     control = control_stack_grid()
     )) |>
@@ -288,25 +290,45 @@ best_logit
 Final workflow.
 
 ```{r}
-final_wf <- logit_wf |>
+final_wf_logit <- logit_wf |>
   finalize_workflow(best_logit)
-final_wf
+final_wf_logit
 ```
 
 Fit the whole training set, then predict the test cases.
 
 ```{r}
-final_fit <- 
-  final_wf |>
+final_fit_logit <- 
+  final_wf_logit |>
   last_fit(data_split)
-final_fit
+final_fit_logit
 ```
 
 Test metrics.
 
 ```{r}
-final_fit |> 
+final_fit_logit |> 
   collect_metrics()
+```
+
+Accuracy of test dataset:
+
+```{r}
+accuracy_logit <- final_fit_logit |> 
+  collect_metrics() |>
+  filter(.metric == "accuracy") |>
+  pull(.estimate)
+accuracy_logit
+```
+
+ROC AUC of test dataset:
+
+```{r}
+roc_auc_logit <- final_fit_logit |> 
+  collect_metrics() |>
+  filter(.metric == "roc_auc") |>
+  pull(.estimate)
+roc_auc_logit 
 ```
 
 **Random forest:**
@@ -362,7 +384,7 @@ rf_mod <-
     # Number of trees in ensemble
     trees = tune()
   ) |> 
-  set_engine("ranger")
+  set_engine("ranger", importance = "impurity")
 rf_mod
 ```
 **Workflow:**
@@ -377,12 +399,12 @@ rf_wf
 **Tuning grid:**
 
 ```{r}
-param_grid <- grid_regular(
+rf_grid <- grid_regular(
   trees(range = c(100L, 500L)), 
   mtry(range = c(1L, 5L)),
   levels = c(5, 5)
   )
-param_grid
+rf_grid
 ```
 
 **Cross-validation:**
@@ -400,8 +422,8 @@ Fit cross-validation.
 rf_fit <- rf_wf |>
   tune_grid(
     resamples = folds,
-    grid = param_grid,
-    metrics = metric_set(roc_auc, accuracy),
+    grid = rf_grid,
+    #metrics = metric_set(roc_auc, accuracy),
     control = control_stack_grid()
     )
 rf_fit
@@ -440,27 +462,56 @@ best_rf
 Final workflow.
 
 ```{r}
-final_wf <- rf_wf |>
+final_wf_rf <- rf_wf |>
   finalize_workflow(best_rf)
-final_wf
+final_wf_rf
 ```
  
 Fit the whole training set, then predict the test cases.
 
 ```{r}
-final_fit <- 
-  final_wf |>
+final_fit_rf <- 
+  final_wf_rf |>
   last_fit(data_split)
-final_fit
+final_fit_rf
 ```
  
+
+Importance of features:
+
+```{r}
+final_fit_rf %>% 
+  extract_fit_parsnip() %>% 
+  vip()
+```
+
 Test metrics.
 
 ```{r}
-final_fit |> 
+final_fit_rf |> 
   collect_metrics()
 ```
  
+Accuracy of test dataset:
+
+```{r}
+accuracy_rf <- final_fit_rf |> 
+  collect_metrics() |>
+  filter(.metric == "accuracy") |>
+  pull(.estimate)
+accuracy_rf
+```
+
+ROC AUC of test dataset:
+
+```{r}
+roc_auc_rf <- final_fit_rf |> 
+  collect_metrics() |>
+  filter(.metric == "roc_auc") |>
+  pull(.estimate)
+roc_auc_rf
+```
+
 **Boosting:**
 
 **Recipe:**
@@ -528,12 +579,12 @@ gb_wf
 **Tuning grid:**
 
 ```{r}
-param_grid <- grid_regular(
+gb_grid <- grid_regular(
   tree_depth(range = c(1L, 3L)),
   learn_rate(range = c(-5, 2), trans = log10_trans()),
   levels = c(3, 10)
   )
-param_grid
+gb_grid
 ```
  
 **Cross-validation:**
@@ -551,7 +602,7 @@ Fit cross-validation.
 gb_fit <- gb_wf |>
   tune_grid(
     resamples = folds,
-    grid = param_grid,
+    grid = gb_grid,
     metrics = metric_set(roc_auc, accuracy),
     control = control_stack_grid()
     )
@@ -591,27 +642,55 @@ best_gb
 Final workflow.
 
 ```{r}
-final_wf <- gb_wf |>
+final_wf_gb <- gb_wf |>
   finalize_workflow(best_gb)
-final_wf
+final_wf_gb
 ```
  
 Fit the whole training set, then predict the test cases.
 
 ```{r}
-final_fit <- 
-  final_wf |>
+final_fit_gb <- 
+  final_wf_gb |>
   last_fit(data_split)
-final_fit
+final_fit_gb
+```
+
+Importance of features:
+
+```{r}
+final_fit_gb %>% 
+  extract_fit_parsnip() %>% 
+  vip()
 ```
  
 Test metrics.
 
 ```{r}
-final_fit |> 
+final_fit_gb |> 
   collect_metrics()
 ```
  
+Accuracy of test dataset:
+
+```{r}
+accuracy_gb <- final_fit_gb |> 
+  collect_metrics() |>
+  filter(.metric == "accuracy") |>
+  pull(.estimate)
+accuracy_gb
+```
+
+ROC AUC of test dataset:
+
+```{r}
+roc_auc_gb <- final_fit_gb |> 
+  collect_metrics() |>
+  filter(.metric == "roc_auc") |>
+  pull(.estimate)
+roc_auc_gb
+```
+
  **Model stacking:**
  
  Build the stacked ensemble.
@@ -637,5 +716,127 @@ mimic_model_st <-
 mimic_model_st
 ```
  
+ Plot the result.
  
+```{r}
+autoplot(mimic_model_st)
+```
+ 
+To show the relationship more directly:
+
+```{r}
+autoplot(mimic_model_st, type = "members")
+```
+
+To see the top results:
+
+```{r}
+autoplot(mimic_model_st, type = "weights")
+```
+
+To identify which model configurations were assigned what stacking coefficients, we can make use of the collect_parameters() function:
+
+```{r}
+collect_parameters(mimic_model_st, "rf_fit")
+```
+ 
+```{r}
+collect_parameters(mimic_model_st, "gb_fit")
+```
+
+ **Finalize classification:**
+ 
+```{r}
+mimic_pred <- mimic_test %>%
+  bind_cols(predict(mimic_model_st, ., type = "prob")) %>%
+  print(width = Inf)
+```
+ 
+```{r}
+mimic_pred_st <- mimic_test %>%
+  bind_cols(predict(mimic_model_st, mimic_test)) %>%
+  print(width = Inf)
+
+accuracy <- mimic_pred_st %>%
+  accuracy(truth = los_long, estimate = .pred_class)
+accuracy
+
+```
+ 
+ 
+ Computing the ROC AUC for the model:
+ 
+```{r}
+roc_auc_st <- yardstick::roc_auc(
+  mimic_pred,
+  truth = los_long,
+  contains(".pred_No")
+  )
+roc_auc_st
+```
+Accuracy of test dataset:
+
+```{r}
+accuracy_st <- accuracy |> 
+  filter(.metric == "accuracy") |>
+  pull(.estimate)
+accuracy_st
+```
+
+ROC AUC of test dataset:
+
+```{r}
+roc_auc_st <- roc_auc_st |> 
+  filter(.metric == "roc_auc") |>
+  pull(.estimate)
+roc_auc_st
+```
+
  4. Compare model classification performance on the test set. Report both the area under ROC curve and accuracy for each machine learning algorithm and the model stacking. Interpret the results. What are the most important features in predicting long ICU stays? How do the models compare in terms of performance and interpretability?
+ 
+```{r}
+# Create a tibble with the variables
+model_metrics <- tibble(
+  Model = c("Logistic Regression", "Random Forest", "Boosting", "Model Stacking"),
+  Accuracy = c(accuracy_logit, accuracy_rf, accuracy_gb, accuracy_st),
+  ROC_AUC = c(roc_auc_logit, roc_auc_rf, roc_auc_gb, roc_auc_st)
+)
+
+# Print the tibble
+print(model_metrics)
+```
+ 
+**Accuracy:** 
+
+This metric represents the proportion of correctly classified instances by the 
+model. Among the individual algorithms, Boosting and Random Forest perform 
+slightly better than Logistic Regression. Model Stacking, which combines the 
+predictions of multiple models, achieves the highest accuracy among all models.
+
+**ROC AUC:**
+
+ROC AUC (Receiver Operating Characteristic Area Under Curve) is a metric that 
+evaluates the model's ability to discriminate between positive and negative 
+classes. Similar to accuracy, Model Stacking has the highest ROC AUC score, 
+indicating better overall performance in distinguishing between classes.
+
+**Feature Importance:**
+
+Based on Random Forest model, the most important features in predicting long ICU
+is White Blood Cell Count. Based on Boosting model, the most important features 
+in predicting long ICU is Temperature Fahrenheit.
+
+
+**Performance and Interpretability: **
+
+In terms of performance, Model Stacking generally outperforms individual 
+algorithms in both accuracy and ROC AUC. However, Model Stacking might sacrifice 
+some interpretability as it combines predictions from multiple models, making it 
+harder to understand the contribution of individual features. Among individual 
+algorithms, Random Forest and Boosting tend to offer good performance while 
+maintaining some level of interpretability, especially in terms of feature 
+importance. Logistic Regression is often highly interpretable due to its linear 
+nature and easy interpretation of coefficients, but it may not capture complex 
+relationships as effectively as tree-based models like Random Forest and 
+Boosting.
+ 
