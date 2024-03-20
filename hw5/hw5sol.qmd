@@ -797,7 +797,8 @@ roc_auc_st
 ```{r}
 # Create a tibble with the variables
 model_metrics <- tibble(
-  Model = c("Logistic Regression", "Random Forest", "Boosting", "Model Stacking"),
+  Model = c("Logistic Regression", "Random Forest", 
+            "Boosting", "Model Stacking"),
   Accuracy = c(accuracy_logit, accuracy_rf, accuracy_gb, accuracy_st),
   ROC_AUC = c(roc_auc_logit, roc_auc_rf, roc_auc_gb, roc_auc_st)
 )
